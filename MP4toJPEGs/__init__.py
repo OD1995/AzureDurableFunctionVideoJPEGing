@@ -49,7 +49,7 @@ def main(videoDetails: vidDets) -> str:
         if count % takeEveryN == 0:
             ## Create path to save image to
             frameName = (5 - len(str(frameNumber)))*"0" + str(frameNumber)
-            imagePath = fr"{framesFolder}\\{frameName}.jpg"
+            imagePath = fr"{framesFolder}\\{frameName}.jpeg"
             ## Save image
             cv2.imwrite(imagePath,
                         image)
