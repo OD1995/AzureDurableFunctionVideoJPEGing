@@ -1,0 +1,8 @@
+azure-functions
+azure-functions-durable>=1.0.0b6
+requests
+datetime
+python-dateutil
+pytz
+opencv-python
+pathlib
