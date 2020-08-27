@@ -6,3 +6,4 @@ python-dateutil
 pytz
 opencv-python
 pathlib
+azure-storage-blob

@@ -12,10 +12,14 @@ import cv2
 import math
 from pathlib import Path
 from datetime import datetime
+from azure.storage.blob import BlockBlobService
+import os
 
 vidDets = namedtuple('VideoDetails',
-                        ['fileName',
-                         'timeToCut'])
+                        ['blobDetails',
+                        'timeToCut',
+                        'frameNumber',
+                        'outputBlob'])
 
 
 def main(videoDetails: vidDets) -> str:
@@ -24,40 +28,29 @@ def main(videoDetails: vidDets) -> str:
     container = blobOptions['container']
     blob =  blobOptions['blob']
     fileURL = blobOptions['fileUrl']
+    frameNumber = blobOptions.frameNumber
+    ## Create BlockBlobService object to be used to upload blob to container
+    block_blob_service = BlockBlobService(connection_string=os.getenv("AzureWebJobsStorage"))
+    # logging.info(f'BlockBlobService created for account "{block_blob_service.account_name}"')
+    ## Create path to save image to
+    frameName = (5 - len(str(frameNumber)))*"0" + str(frameNumber)
+    imagePath = fr"{framesFolder}\\{frameName}.jpeg"
     ## Open the video
     vidcap = cv2.VideoCapture(fileURL)
+    ## Set the video to the correct frame
+    vidcap.set(cv2.CAP_PROP_POS_FRAMES,
+                frameNumber)
+    ## Create the image
     success,image = vidcap.read()
-    ## Get metadata
-    fps = vidcap.get(cv2.CAP_PROP_FPS)
-    ## Get number of frames wanted per second
-    wantedFPS = 1
-    takeEveryN = math.floor(fps/wantedFPS)
-    ## Work out when the recording starts based on the filename
-    vidName = videoDetails.fileName.split("\\")[-1].replace(".mp4","")
-    vidName1 = vidName[:vidName.index("-")]
-    vidRoot = "\\".join(videoDetails.fileName.split("\\")[:-1])
-    recordingStart = datetime.strptime(f'{vidName1.split("_")[0]} {vidName1[-4:]}',
-                                        "%Y%m%d %H%M")
-    ## Work out which frames to reject
-    frameToCutFrom = int((videoDetails.timeToCut - recordingStart).seconds * fps)
-    ## Create folder if one doesn't exist
-    framesFolder = f"{vidRoot}\\{vidName1}"
-    Path(framesFolder).mkdir(parents=True, exist_ok=True)
-    count = 0
-    frameNumber = 0
-    while success:
-        if count % takeEveryN == 0:
-            ## Create path to save image to
-            frameName = (5 - len(str(frameNumber)))*"0" + str(frameNumber)
-            imagePath = fr"{framesFolder}\\{frameName}.jpeg"
-            ## Save image
-            cv2.imwrite(imagePath,
-                        image)
-            frameNumber += 1
-        success,image = vidcap.read()
-        count += 1
-        
-        if count >= frameToCutFrom:
-            success = False
+    if success:
+        ## Encode image
+        success2, image2 = cv2.imencode(".jpeg", image)
+        if success2:
+            ## Convert image2 (numpy.ndarray) to bytes
+            byte_im = im_buf_arr.tobytes() 
+            ## Create the new blob
+            block_blob_service.create_blob_from_bytes(container_name=container,
+                                                        blob_name=imagePath',
+                                                        blob=byte_im)
 
-    return framesFolder
+    return True
