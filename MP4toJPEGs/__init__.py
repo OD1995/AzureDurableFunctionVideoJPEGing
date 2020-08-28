@@ -50,7 +50,7 @@ def main(videoDetails: vidDets) -> str:
             byte_im = im_buf_arr.tobytes() 
             ## Create the new blob
             block_blob_service.create_blob_from_bytes(container_name=container,
-                                                        blob_name=imagePath',
+                                                        blob_name=imagePath,
                                                         blob=byte_im)
 
     return True

@@ -36,8 +36,6 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
     tasks = [context.call_activity(name='MP4toJPEGs',
                                     input_=vidDets(blobDetails=context._input,
                                                     frameNumber=i))
-
-                                                    func.Out
                 for i in activity_list]
     values = yield context.task_all(tasks)
 

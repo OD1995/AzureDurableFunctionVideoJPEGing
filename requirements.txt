@@ -1,9 +1,9 @@
 azure-functions
 azure-functions-durable>=1.0.0b6
-requests
+azure-storage-blob==1.5.0
 datetime
+opencv-python
 python-dateutil
 pytz
-opencv-python
 pathlib
-azure-storage-blob
+requests

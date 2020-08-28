@@ -5,7 +5,7 @@ import azure.functions as func
 import azure.durable_functions as df
 
 
-def main(event: func.EventGridEvent,
+async def main(event: func.EventGridEvent,
             starter: str):
 
     client = df.DurableOrchestrationClient(starter)
@@ -16,7 +16,7 @@ def main(event: func.EventGridEvent,
 
     subject = (event.subject).split('/')
     options = {
-        "fileUrl": event.data['fileUrl'],
+        "fileUrl": event.get_json()['url'],
         "container": subject[4],
         "blob": subject[6]
                 }
