@@ -9,31 +9,31 @@
 import logging
 from collections import namedtuple
 import cv2
-import math
-from pathlib import Path
-from datetime import datetime
+import json
 from azure.storage.blob import BlockBlobService
 import os
 
 vidDets = namedtuple('VideoDetails',
                         ['blobDetails',
                         'timeToCut',
-                        'frameNumber',
-                        'outputBlob'])
+                        'frameNumber'])
 
 
 def main(videoDetails: vidDets) -> str:
     ## Get blob details
-    blobOptions = (json.loads(videoDetails.blobDetails))
+    blobDetails,timeToCut,frameNumber = videoDetails
+    blobOptions = json.loads(blobDetails)
     container = blobOptions['container']
-    blob =  blobOptions['blob']
     fileURL = blobOptions['fileUrl']
-    frameNumber = blobOptions.frameNumber
+    fileName = blobOptions['blob']
     ## Create BlockBlobService object to be used to upload blob to container
     block_blob_service = BlockBlobService(connection_string=os.getenv("AzureWebJobsStorage"))
-    # logging.info(f'BlockBlobService created for account "{block_blob_service.account_name}"')
+    logging.info(f'BlockBlobService created for account "{block_blob_service.account_name}"')
     ## Create path to save image to
     frameName = (5 - len(str(frameNumber)))*"0" + str(frameNumber)
+    ## Create frames folder name by removing folder names if any exist and
+    ##    removing '_HHMM-YYYY-mm-dd.mp4' from the end
+    framesFolder = blob.split("/")[-1][:-20]
     imagePath = fr"{framesFolder}\\{frameName}.jpeg"
     ## Open the video
     vidcap = cv2.VideoCapture(fileURL)
@@ -47,7 +47,7 @@ def main(videoDetails: vidDets) -> str:
         success2, image2 = cv2.imencode(".jpeg", image)
         if success2:
             ## Convert image2 (numpy.ndarray) to bytes
-            byte_im = im_buf_arr.tobytes() 
+            byte_im = image2.tobytes() 
             ## Create the new blob
             block_blob_service.create_blob_from_bytes(container_name=container,
                                                         blob_name=imagePath,

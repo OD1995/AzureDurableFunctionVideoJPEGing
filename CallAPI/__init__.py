@@ -11,7 +11,7 @@ import requests
 from datetime import datetime, timedelta
 import dateutil.parser
 from pytz import timezone
-
+import json
 
 nameLookup = {
                 'ARI' : 'Diamondbacks'
@@ -58,7 +58,6 @@ def main(options: str) -> int:
     awayTeam,homeTeam = vidName1.split("_")[-2].split("@")
     recordingStart = datetime.strptime(f'{vidName1.split("_")[0]} {vidName1[-4:]}',
                                         "%Y%m%d %H%M")
-
     ## # MLB API
     ## Get API friendly date
     apiDate = datetime.strftime(recordingStart.date(),
@@ -68,6 +67,7 @@ def main(options: str) -> int:
                             params={'sportId' : 1,
                                     'date' : apiDate})
     schedJS = schedResp.json()
+    logging.info(f"MLB API called for {apiDate}")
     listOfGames = schedJS['dates'][0]['games']
     ## Create cleaner and more filterable list of dicts
     betterListOfGames = []
@@ -101,5 +101,6 @@ def main(options: str) -> int:
                                                 ).replace(tzinfo=None)
     ## Work out which frames to reject
     timeToCut = lastPlayEnd + timedelta(hours=1)
-
-    return timeToCut
+    logging.info(f"Time to cut ({timeToCut}) retrieved")
+    return datetime.strftime(timeToCut,
+                                "%Y-%m-%d %H:%M:%S.%f")

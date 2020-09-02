@@ -11,21 +11,25 @@ from collections import namedtuple
 import cv2
 import math
 from datetime import datetime
+import json
 
 vidDets = namedtuple('VideoDetails',
                         ['blobDetails',
                          'timeToCut'
-                         'frameNumber',
-                         'outputBlob'])
+                         'frameNumber'])
 
 
 def main(videoDetails: vidDets) -> list:
     ## Get blob details
-    blobOptions = (json.loads(videoDetails.blobDetails))
+    blobDetails,timeToCut,frameNumber = videoDetails
+    blobOptions = json.loads(blobDetails)
     fileURL = blobOptions['fileUrl']
     fileName = blobOptions['blob']
+    timeToCut = datetime.strptime(timeToCut,
+                                    "%Y-%m-%d %H:%M:%S.%f")
     ## Open the video
     vidcap = cv2.VideoCapture(fileURL)
+    logging.info(f"VideoCapture object created for {fileURL}")
     success,image = vidcap.read()
     ## Get metadata
     fps = vidcap.get(cv2.CAP_PROP_FPS)
@@ -36,11 +40,10 @@ def main(videoDetails: vidDets) -> list:
     ## Work out when the recording starts based on the filename
     vidName = fileName.split("\\")[-1].replace(".mp4","")
     vidName1 = vidName[:vidName.index("-")]
-    vidRoot = "\\".join(fileName.split("\\")[:-1])
     recordingStart = datetime.strptime(f'{vidName1.split("_")[0]} {vidName1[-4:]}',
                                         "%Y%m%d %H%M")
     ## Work out which frames to reject
-    frameToCutFrom = int((videoDetails.timeToCut - recordingStart).seconds * fps)
+    frameToCutFrom = int((timeToCut - recordingStart).seconds * fps)
     ## Create list of frame numbers to be JPEGed
     listOfFrameNumbers = [i
                             for i in range(frameCount)
