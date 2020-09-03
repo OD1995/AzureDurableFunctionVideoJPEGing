@@ -26,29 +26,25 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
     vidDets = namedtuple('VideoDetails',
                          ['blobDetails',
                           'timeToCut',
-                          'frameNumber',
-                          'frameNumberName'])
+                          'frameNumberList'])
     logging.info('vidDets created')
     # timeToCut = "2020-12-10 20:20:20.12345"
     # logging.info("timeToCut set")
     videoDetails = vidDets(blobDetails=context._input,
                             timeToCut=timeToCut,
-                            frameNumber=None,
-                            frameNumberName=None)
+                            frameNumberList=None)
     logging.info('videoDetails created')
     listOfFrameNumbers = yield context.call_activity(
                                     name='ReturnFrameNumbers',
                                     input_=videoDetails)
     logging.info(f'List of {len(listOfFrameNumbers)} generated')
-    ## Create a list of tasks, using the listOfFrameNumbers
-    tasks = [context.call_activity(name='MP4toJPEGs',
+    ## Create images from list
+    values = yield context.call_activity(
+                                    name='MP4toJPEGs',
                                     input_=vidDets(blobDetails=context._input,
                                                     timeToCut=None,
-                                                    frameNumber=i,
-                                                    frameNumberName=ix))
-                for ix,i in enumerate(listOfFrameNumbers,1)]
-    logging.info(f"All {len(listOfFrameNumbers)} tasks called")
-    values = yield context.task_all(tasks)
+                                                    frameNumberList=listOfFrameNumbers)
+                                            )
 
     return values
 

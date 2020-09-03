@@ -21,13 +21,12 @@ from . import MyClasses
 vidDets = namedtuple('VideoDetails',
                         ['blobDetails',
                          'timeToCut'
-                         'frameNumber',
-                         'frameNumberName'])
+                         'frameNumberList'])
 
 
 def main(videoDetails: vidDets) -> list:
     ## Get blob details
-    blobDetails,timeToCut,frameNumber,frameNumberName = videoDetails
+    blobDetails,timeToCut,frameNumberList = videoDetails
     blobOptions = json.loads(blobDetails)
     fileURL = blobOptions['fileUrl']
     container = blobOptions['container']
