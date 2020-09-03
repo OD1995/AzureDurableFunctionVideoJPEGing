@@ -16,12 +16,13 @@ import os
 vidDets = namedtuple('VideoDetails',
                         ['blobDetails',
                         'timeToCut',
-                        'frameNumber'])
+                        'frameNumber',
+                        'frameNumberName'])
 
 
 def main(videoDetails: vidDets) -> str:
     ## Get blob details
-    blobDetails,timeToCut,frameNumber = videoDetails
+    blobDetails,timeToCut,frameNumber,frameNumberName = videoDetails
     blobOptions = json.loads(blobDetails)
     container = blobOptions['container']
     fileURL = blobOptions['fileUrl']
@@ -30,11 +31,11 @@ def main(videoDetails: vidDets) -> str:
     block_blob_service = BlockBlobService(connection_string=os.getenv("AzureWebJobsStorage"))
     logging.info(f'BlockBlobService created for account "{block_blob_service.account_name}"')
     ## Create path to save image to
-    frameName = (5 - len(str(frameNumber)))*"0" + str(frameNumber)
+    frameName = (5 - len(str(frameNumberName)))*"0" + str(frameNumberName)
     ## Create frames folder name by removing folder names if any exist and
     ##    removing '_HHMM-YYYY-mm-dd.mp4' from the end
-    framesFolder = blob.split("/")[-1][:-20]
-    imagePath = fr"{framesFolder}\\{frameName}.jpeg"
+    framesFolder = fileName.split("/")[-1][:-20]
+    imagePath = fr"{framesFolder}\{frameName}.jpeg"
     ## Open the video
     vidcap = cv2.VideoCapture(fileURL)
     ## Set the video to the correct frame

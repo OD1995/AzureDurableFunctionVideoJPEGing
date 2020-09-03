@@ -16,9 +16,9 @@ import azure.durable_functions as df
 
 def orchestrator_function(context: df.DurableOrchestrationContext):
     ## Get time to cut from, using MLB API
-    # timeToCut = yield context.call_activity(name='CallAPI',
-    #                                         input_=context._input)
-    # logging.info('timeToCut acquired')
+    timeToCut = yield context.call_activity(name='CallAPI',
+                                            input_=context._input)
+    logging.info('timeToCut acquired')
     ## Get list of frame numbers to convert to JPEGs, ending at `timeToCut`
     ##    Use composite object
     ##     - https://docs.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-orchestrations?tabs=python#passing-multiple-parameters
@@ -26,13 +26,15 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
     vidDets = namedtuple('VideoDetails',
                          ['blobDetails',
                           'timeToCut',
-                          'frameNumber'])
+                          'frameNumber',
+                          'frameNumberName'])
     logging.info('vidDets created')
-    timeToCut = "2020-12-10 20:20:20.12345"
-    logging.info("timeToCut set")
+    # timeToCut = "2020-12-10 20:20:20.12345"
+    # logging.info("timeToCut set")
     videoDetails = vidDets(blobDetails=context._input,
                             timeToCut=timeToCut,
-                            frameNumber=None)
+                            frameNumber=None,
+                            frameNumberName=None)
     logging.info('videoDetails created')
     listOfFrameNumbers = yield context.call_activity(
                                     name='ReturnFrameNumbers',
@@ -42,8 +44,9 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
     tasks = [context.call_activity(name='MP4toJPEGs',
                                     input_=vidDets(blobDetails=context._input,
                                                     timeToCut=None,
-                                                    frameNumber=i))
-                for i in listOfFrameNumbers]
+                                                    frameNumber=i,
+                                                    frameNumberName=ix))
+                for ix,i in enumerate(listOfFrameNumbers,1)]
     logging.info(f"All {len(listOfFrameNumbers)} tasks called")
     values = yield context.task_all(tasks)
 
