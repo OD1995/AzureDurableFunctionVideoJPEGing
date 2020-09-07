@@ -3,6 +3,7 @@ import re
 from sqlalchemy import create_engine
 import pandas as pd
 from datetime import datetime
+import logging
 
 def getAzureBlobVideos():
     logging.info("getAzureBlobVideos started")
