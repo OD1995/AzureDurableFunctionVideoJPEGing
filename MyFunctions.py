@@ -5,6 +5,8 @@ import pandas as pd
 from datetime import datetime
 
 def getAzureBlobVideos():
+    logging.info("getAzureBlobVideos started")
+
     username = 'matt.shepherd'
     password = os.getenv("sqlPassword")
     driver= 'SQL+Server'
@@ -13,11 +15,15 @@ def getAzureBlobVideos():
     table = 'AzureBlobVideos'
 
     connectionString = f'mssql+pyodbc://{username}:{password}@{server}/{database}?driver={driver}'
+
+    logging.info('Connection string created')
     ## Create engine
     engine = create_engine(connectionString,
                         fast_executemany=True)
+    logging.info('engine created')
     ## Make connection
     conn = engine.connect()
+    logging.info('engine connected')
     ## Get SQL table in pandas DataFrame
     df = pd.read_sql_table(table_name=table,
                             con=conn)
