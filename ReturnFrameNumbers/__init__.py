@@ -14,19 +14,22 @@ from datetime import datetime
 import json
 import tempfile
 from azure.storage.blob import BlockBlobService
-import os
 import sys
-from . import MyClasses
+import os
+sys.path.append(os.path.abspath('.'))
+import MyClasses
 
 vidDets = namedtuple('VideoDetails',
                         ['blobDetails',
                          'timeToCut'
-                         'frameNumberList'])
+                         'frameNumberList',
+                         'sport',
+                         'event'])
 
 
 def main(videoDetails: vidDets) -> list:
     ## Get blob details
-    blobDetails,timeToCut,frameNumberList = videoDetails
+    blobDetails,timeToCut,frameNumberList,sport,event = videoDetails
     blobOptions = json.loads(blobDetails)
     fileURL = blobOptions['fileUrl']
     container = blobOptions['container']

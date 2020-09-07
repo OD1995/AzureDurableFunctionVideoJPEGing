@@ -11,21 +11,28 @@ from collections import namedtuple
 import cv2
 import json
 from azure.storage.blob import BlockBlobService
+import sys
 import os
+sys.path.append(os.path.abspath('.'))
+import MyFunctions
 
 vidDets = namedtuple('VideoDetails',
                         ['blobDetails',
-                        'timeToCut',
-                        'frameNumberList'])
+                         'timeToCut'
+                         'frameNumberList',
+                         'sport',
+                         'event'])
 
 
 def main(videoDetails: vidDets) -> str:
     ## Get blob details
-    blobDetails,timeToCut,frameNumberList = videoDetails
+    blobDetails,timeToCut,frameNumberList,sport,event = videoDetails
     blobOptions = json.loads(blobDetails)
     container = blobOptions['container']
     fileURL = blobOptions['fileUrl']
     fileName = blobOptions['blob']
+    ## Check if `sport` is an acceptable container name
+    _sport_ = MyFunctions.checkOrFixContainerName(sport)
     ## Open the video
     vidcap = cv2.VideoCapture(fileURL)
     ## Create BlockBlobService object to be used to upload blob to container

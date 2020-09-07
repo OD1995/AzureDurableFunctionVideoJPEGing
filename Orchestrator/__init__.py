@@ -9,41 +9,65 @@
 import logging
 import json
 from collections import namedtuple
-
+from . import MyFunctions
 import azure.functions as func
 import azure.durable_functions as df
 
 
 def orchestrator_function(context: df.DurableOrchestrationContext):
-    ## Get time to cut from, using MLB API
-    timeToCut = yield context.call_activity(name='CallAPI',
-                                            input_=context._input)
-    logging.info('timeToCut acquired')
+
+    ## Get AzureBlobVideos table from SQL, in dict form
+    abv = MyFunctions.getAzureBlobVideos()
+
+    ## If the video name is in the dict, extract the information
+    try:
+        videoName = json.loads(context._input)['blob']
+        ## MAKE ADJUSTMENTS FOR SNAPSTREAM ADDING DATE/TIME TO END
+
+        sport,event = abv[videoName]
+    except KeyError:
+        sport = None
+        event = None
+
+    if sport == 'baseball':
+        ## Get time to cut from, using MLB API
+        timeToCut = yield context.call_activity(name='CallAPI',
+                                                input_=context._input)
+        logging.info('timeToCut acquired from API')
+    else:
+        ## Make timeToCut a time far in the future
+        timeToCut = "2095-13-03 00:00:00.00000"
+        logging.info("Not baseball, so distant timeToCut provided")
+
     ## Get list of frame numbers to convert to JPEGs, ending at `timeToCut`
     ##    Use composite object
     ##     - https://docs.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-orchestrations?tabs=python#passing-multiple-parameters
-    logging.info('About to create vidDets')
     vidDets = namedtuple('VideoDetails',
                          ['blobDetails',
                           'timeToCut',
-                          'frameNumberList'])
+                          'frameNumberList',
+                          'sport',
+                          'event'])
     logging.info('vidDets created')
-    # timeToCut = "2020-12-10 20:20:20.12345"
-    # logging.info("timeToCut set")
     videoDetails = vidDets(blobDetails=context._input,
                             timeToCut=timeToCut,
-                            frameNumberList=None)
+                            frameNumberList=None,
+                            sport=None,
+                            event=None)
     logging.info('videoDetails created')
     listOfFrameNumbers = yield context.call_activity(
                                     name='ReturnFrameNumbers',
                                     input_=videoDetails)
     logging.info(f'List of {len(listOfFrameNumbers)} generated')
+
     ## Create images from list
     values = yield context.call_activity(
                                     name='MP4toJPEGs',
                                     input_=vidDets(blobDetails=context._input,
                                                     timeToCut=None,
-                                                    frameNumberList=listOfFrameNumbers)
+                                                    frameNumberList=listOfFrameNumbers,
+                                                    sport=sport,
+                                                    event=event)
                                             )
 
     return values
