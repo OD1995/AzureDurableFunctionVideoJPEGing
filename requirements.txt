@@ -4,8 +4,9 @@ azure-storage-blob==1.5.0
 datetime
 opencv-python
 pandas
+pathlib
+pyodbc
 python-dateutil
 pytz
-pathlib
 requests
 sqlalchemy

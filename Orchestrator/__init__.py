@@ -19,9 +19,11 @@ import azure.durable_functions as df
 
 
 def orchestrator_function(context: df.DurableOrchestrationContext):
-
+    logging.info("Orchestrator started")
+    
     ## Get AzureBlobVideos table from SQL, in dict form
     abv = MyFunctions.getAzureBlobVideos()
+    logging.info(f"AzureBlobVideos table retrieved - {len(abv)} rows")
 
     ## If the video name is in the dict, extract the information
     try:
@@ -31,9 +33,11 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
         videoName = MyFunctions.cleanUpVidName(videoName0)
         ## Get relevant sport and event name for the video (excluding '.mp4')
         sport,event = abv[videoName[:-4]]
+        logging.info("sport and event retrieved")
     except KeyError:
         sport = None
         event = None
+        logging.info("Video not in AzureBlobVideos so sport and event both None")
 
     if sport == 'baseball':
         ## Get time to cut from, using MLB API
@@ -41,8 +45,8 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                                                 input_=context._input)
         logging.info('timeToCut acquired from API')
     else:
-        ## Make timeToCut a time far in the future
-        timeToCut = "2095-13-03 00:00:00.00000"
+        ## Make timeToCut a time far in the future (my 100th birthday)
+        timeToCut = "2095-03-13 00:00:00.00000"
         logging.info("Not baseball, so distant timeToCut provided")
 
     ## Get list of frame numbers to convert to JPEGs, ending at `timeToCut`
@@ -54,13 +58,12 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                           'frameNumberList',
                           'sport',
                           'event'])
-    logging.info('vidDets created')
     videoDetails = vidDets(blobDetails=context._input,
                             timeToCut=timeToCut,
                             frameNumberList=None,
                             sport=None,
                             event=None)
-    logging.info('videoDetails created')
+    logging.info("Initial videoDetails object created")
     listOfFrameNumbers = yield context.call_activity(
                                     name='ReturnFrameNumbers',
                                     input_=videoDetails)

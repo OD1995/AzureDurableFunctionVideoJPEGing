@@ -38,6 +38,12 @@ def main(videoDetails: vidDets) -> str:
                                                         sport,
                                                         container
                                                         )
+    ## Set the file name to be used
+    if event is not None:
+        fileNameFolder = event
+    else:
+        ## Blob name without ".mp4"
+        fileNameFolder = fileName.split("/")[-1][:-4]
     ## Create BlockBlobService object to be used to upload blob to container
     block_blob_service = BlockBlobService(connection_string=connectionStringOutput)
     logging.info(f'BlockBlobService created for account "{block_blob_service.account_name}"')
@@ -49,7 +55,7 @@ def main(videoDetails: vidDets) -> str:
     for frameNumberName,frameNumber in enumerate(frameNumberList,1):
         ## Create path to save image to
         frameName = (5 - len(str(frameNumberName)))*"0" + str(frameNumberName)
-        imagePath = fr"{event}\{frameName}.jpeg"
+        imagePath = fr"{fileNameFolder}\{frameName}.jpeg"
         ## Set the video to the correct frame
         vidcap.set(cv2.CAP_PROP_POS_FRAMES,
                     frameNumber)

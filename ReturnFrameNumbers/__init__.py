@@ -29,12 +29,12 @@ vidDets = namedtuple('VideoDetails',
 
 def main(videoDetails: vidDets) -> list:
     ## Get blob details
-    blobDetails,timeToCut,frameNumberList,sport,event = videoDetails
+    blobDetails,timeToCutStr,frameNumberList,sport,event = videoDetails
     blobOptions = json.loads(blobDetails)
     fileURL = blobOptions['fileUrl']
     container = blobOptions['container']
     fileName = blobOptions['blob']
-    timeToCut = datetime.strptime(timeToCut,
+    timeToCut = datetime.strptime(timeToCutStr,
                                     "%Y-%m-%d %H:%M:%S.%f")
     ## Open the video
     vidcap = cv2.VideoCapture(fileURL)
@@ -57,13 +57,18 @@ def main(videoDetails: vidDets) -> list:
     ## Get number of frames wanted per second
     wantedFPS = 1
     takeEveryN = math.floor(fps/wantedFPS)
-    ## Work out when the recording starts based on the filename
-    vidName = fileName.split("\\")[-1].replace(".mp4","")
-    vidName1 = vidName[:vidName.index("-")]
-    recordingStart = datetime.strptime(f'{vidName1.split("_")[0]} {vidName1[-4:]}',
-                                        "%Y%m%d %H%M")
-    ## Work out which frames to reject
-    frameToCutFrom = int((timeToCut - recordingStart).seconds * fps)
+    if timeToCutStr != "2095-03-13 00:00:00.00000":
+        ## Work out when the recording starts based on the filename
+        vidName = fileName.split("\\")[-1].replace(".mp4","")
+        vidName1 = vidName[:vidName.index("-")]
+        recordingStart = datetime.strptime(f'{vidName1.split("_")[0]} {vidName1[-4:]}',
+                                            "%Y%m%d %H%M")
+        ## Work out which frames to reject
+        frameToCutFrom = int((timeToCut - recordingStart).seconds * fps)
+    else:
+        ## If last play is my 100th birthday, set a huge number that it'll never reach
+        frameToCutFrom = 1000000000
+    logging.info("List of frame numbers about to be generated")
     ## Create list of frame numbers to be JPEGed
     listOfFrameNumbers = [i
                             for i in range(frameCount)

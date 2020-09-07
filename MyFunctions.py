@@ -7,7 +7,7 @@ from datetime import datetime
 def getAzureBlobVideos():
     username = 'matt.shepherd'
     password = os.getenv("sqlPassword")
-    driver= 'SQL Server Native Client 11.0'
+    driver= 'SQL+Server'
     server = os.getenv("sqlServer")
     database = 'AzureCognitive'
     table = 'AzureBlobVideos'
@@ -47,19 +47,24 @@ def getContainerAndConnString(sport,
                             for x in sport])
         ## Replace double hyphens
         _sport_ = _sport_.replace("--","-").replace("--","-")
+
+        ## # Make some checks
+        ## Check that the length is between 3 and 63 charachters
+        length = (len(_sport_) >= 3) & (len(_sport_) <= 63)
+        ## Check that all characters are either a-z, 0-9 or -
+        rightCharTypes = True if re.match("^[a-z0-9-]*$", _sport_) else False
+        ## Check that the first character is either a-z or 0-9
+        firstCharRight = True if re.match("^[a-z0-9]*$", _sport_[0]) else False
+        ## Check that the last character is either a-z or 0-9
+        lastCharRight = True if re.match("^[a-z0-9]*$", _sport_[-1]) else False
     else:
         isNotNone = False
+        length = False
+        rightCharTypes = False
+        firstCharRight = False
+        lastCharRight = False
         _sport_ = ""
 
-    ## # Make some checks
-    ## Check that the length is between 3 and 63 charachters
-    length = (len(_sport_) >= 3) & (len(_sport_) <= 63)
-    ## Check that all characters are either a-z, 0-9 or -
-    rightCharTypes = True if re.match("^[a-z0-9-]*$", _sport_) else False
-    ## Check that the first character is either a-z or 0-9
-    firstCharRight = True if re.match("^[a-z0-9]*$", _sport_[0]) else False
-    ## Check that the last character is either a-z or 0-9
-    lastCharRight = True if re.match("^[a-z0-9]*$", _sport_[-1]) else False
 
 
     if isNotNone & length & rightCharTypes & firstCharRight & lastCharRight:
