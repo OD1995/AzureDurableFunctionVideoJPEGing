@@ -1,7 +1,8 @@
-from sqlalchemy import create_engine
-import pandas as pd
 import os
 import re
+from sqlalchemy import create_engine
+import pandas as pd
+from datetime import datetime
 
 def getAzureBlobVideos():
     username = 'matt.shepherd'
@@ -30,15 +31,25 @@ def getAzureBlobVideos():
 
     return dfDict
 
-def checkOrFixContainerName(sport):
-
+def getContainerAndConnString(sport,
+                                container):
+    """
+    Using the sport value from the AzureBlobVideos SQL table and
+    the container the MP4 is currently in, work out which container
+    and blob storage account to insert images into
+    """
     ## # Make some adjustments to make the container name as ready as possible
     ## Convert all `sport` characters to lower case
-    _sport_ = "".join([x.lower() if isinstance(x,str)
-                        else "" if x == " " else x
-                        for x in sport])
-    ## Replace double hyphens
-    _sport_ = _sport_.replace("--","-").replace("--","-")
+    if sport is not None:
+        isNotNone = True
+        _sport_ = "".join([x.lower() if isinstance(x,str)
+                            else "" if x == " " else x
+                            for x in sport])
+        ## Replace double hyphens
+        _sport_ = _sport_.replace("--","-").replace("--","-")
+    else:
+        isNotNone = False
+        _sport_ = ""
 
     ## # Make some checks
     ## Check that the length is between 3 and 63 charachters
@@ -51,9 +62,17 @@ def checkOrFixContainerName(sport):
     lastCharRight = True if re.match("^[a-z0-9]*$", _sport_[-1]) else False
 
 
-    if length & rightCharTypes & firstCharRight & lastCharRight:
-        returnMe =  _sport_
+    if isNotNone & length & rightCharTypes & firstCharRight & lastCharRight:
+        return  _sport_,os.getenv("fsecustomvisionimagesConnectionString")
     else:
-        returnMe = False
+        return container,os.getenv("fsevideosConnectionString")
 
-    return returnMe
+
+def cleanUpVidName(videoName0):
+    """Clean up video name if '_HHMM-YYYY-mm-dd.mp4' is in the video name"""
+    try:
+        _ = datetime.strptime(videoName0[-15:-4],
+                                "-%Y-%m-%d")
+        return videoName0.replace(videoName0[-15:-4],"")
+    except ValueError:
+        return videoName0

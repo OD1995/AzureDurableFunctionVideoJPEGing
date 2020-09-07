@@ -9,7 +9,11 @@
 import logging
 import json
 from collections import namedtuple
-from . import MyFunctions
+import sys
+import os
+sys.path.append(os.path.abspath('.'))
+import MyFunctions
+from datetime import datetime
 import azure.functions as func
 import azure.durable_functions as df
 
@@ -21,10 +25,12 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
 
     ## If the video name is in the dict, extract the information
     try:
-        videoName = json.loads(context._input)['blob']
-        ## MAKE ADJUSTMENTS FOR SNAPSTREAM ADDING DATE/TIME TO END
-
-        sport,event = abv[videoName]
+        videoName0 = json.loads(context._input)['blob']
+        ## If last 11 characters (excluding '.mp4') follow '-YYYY-MM-DD'
+        ##    then remove them
+        videoName = MyFunctions.cleanUpVidName(videoName0)
+        ## Get relevant sport and event name for the video (excluding '.mp4')
+        sport,event = abv[videoName[:-4]]
     except KeyError:
         sport = None
         event = None
