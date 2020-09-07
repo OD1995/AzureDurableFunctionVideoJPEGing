@@ -17,7 +17,7 @@ def getAzureBlobVideos():
 
     connectionString = f'mssql+pyodbc://{username}:{password}@{server}/{database}?driver={driver}'
 
-    logging.info('Connection string created')
+    logging.info(f'Connection string created: {connectionString}')
     ## Create engine
     engine = create_engine(connectionString,
                         fast_executemany=True)
