@@ -43,6 +43,7 @@ def main(videoDetails: vidDets) -> list:
     ## Get metadata
     fps = vidcap.get(cv2.CAP_PROP_FPS)
     frameCount = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+    logging.info('Video metadata acquired')
     ## If frame count negative, download locally and try again
     if frameCount < 0:
         with tempfile.TemporaryDirectory() as dirpath:

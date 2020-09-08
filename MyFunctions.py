@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 import pandas as pd
 from datetime import datetime
 import logging
+import socket
 
 def getAzureBlobVideos():
     logging.info("getAzureBlobVideos started")
@@ -18,6 +19,7 @@ def getAzureBlobVideos():
     connectionString = f'mssql+pyodbc://{username}:{password}@{server}/{database}?driver={driver}'
 
     logging.info(f'Connection string created: {connectionString}')
+    logging.info(f"IP address: {socket.gethostbyname(socket.gethostname())}")
     ## Create engine
     engine = create_engine(connectionString,
                         fast_executemany=True)
