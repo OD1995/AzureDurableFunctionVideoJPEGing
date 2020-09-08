@@ -9,5 +9,4 @@ pyodbc
 python-dateutil
 pytz
 requests
-socket
 sqlalchemy
