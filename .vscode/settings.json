@@ -1,7 +1,6 @@
 {
   "azureFunctions.deploySubpath": ".",
   "azureFunctions.scmDoBuildDuringDeployment": true,
-  "azureFunctions.preDeployTask": "func: pack --build-native-deps",
   "azureFunctions.pythonVenv": ".venv",
   "azureFunctions.projectLanguage": "Python",
   "azureFunctions.projectRuntime": "~3",
