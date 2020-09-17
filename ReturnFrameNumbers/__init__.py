@@ -36,6 +36,10 @@ def main(videoDetails: vidDets) -> list:
     fileName = blobOptions['blob']
     timeToCut = datetime.strptime(timeToCutStr,
                                     "%Y-%m-%d %H:%M:%S.%f")
+    logging.info(f"fileURL: {fileURL}")
+    logging.info(f"container: {container}")
+    logging.info(f"fileName: {fileName}")
+    logging.info(f"timeToCutStr: {timeToCutStr}")
     ## Open the video
     vidcap = cv2.VideoCapture(fileURL)
     logging.info(f"VideoCapture object created for {fileURL}")
@@ -44,17 +48,27 @@ def main(videoDetails: vidDets) -> list:
     fps = vidcap.get(cv2.CAP_PROP_FPS)
     frameCount = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
     logging.info('Video metadata acquired')
+    logging.info(f"frameCount: {str(frameCount)}")
     ## If frame count negative, download locally and try again
     if frameCount < 0:
+        logging.info("Frame count negative so local download needed")
         with tempfile.TemporaryDirectory() as dirpath:
             ## Get blob and save to local directory
             vidLocalPath = fr"{dirpath}\{fileName}"
-            block_blob_service = BlockBlobService(connection_string=os.getenv("AzureWebJobsStorage"))
+            # logging.info("About to get connection string")
+            # logging.info(f"CS: {os.environ['fsevideosConnectionString']}")
+            fsevideosConnectionString = "DefaultEndpointsProtocol=https;AccountName=fsevideos;AccountKey=xfYncTDRCowSrISbdsSknM05jqOrJXc4Oavq7BQ56yR7uQ7MCeL5aXmBsbsE+SZ+++xGt2oy6FvrEdpryc+vwQ==;EndpointSuffix=core.windows.net"
+            logging.info("About to create BlockBlobService")
+            block_blob_service = BlockBlobService(connection_string=fsevideosConnectionString)
+            logging.info("BlockBlobService created")
             block_blob_service.get_blob_to_path(container_name=container,
                                                 blob_name=fileName,
                                                 file_path=vidLocalPath)
+            logging.info("Blob saved to path")
             with MyClasses.MyVideoCapture(vidLocalPath) as vc1:
                 frameCount = int(vc1.get(cv2.CAP_PROP_FRAME_COUNT))
+
+            logging.info(f"(new) frameCount: {str(frameCount)}")
     ## Get number of frames wanted per second
     wantedFPS = 1
     takeEveryN = math.floor(fps/wantedFPS)
@@ -74,5 +88,5 @@ def main(videoDetails: vidDets) -> list:
     listOfFrameNumbers = [i
                             for i in range(frameCount)
                             if (i % takeEveryN == 0) & (i <= frameToCutFrom)]
-
-    return listOfFrameNumbers
+    logging.info(f"listOfFrameNumbers created with {len(listOfFrameNumbers)} elements")
+    return json.dumps(listOfFrameNumbers)

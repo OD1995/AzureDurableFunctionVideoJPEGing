@@ -19,7 +19,6 @@ import os
 # logging.info("`MyFunctions` has been imported")
 from datetime import datetime
 import pandas as pd
-import socket
 import pyodbc
 import azure.functions as func
 import azure.durable_functions as df
@@ -29,15 +28,16 @@ def getAzureBlobVideos2():
     logging.info("getAzureBlobVideos started")
     ## Get information used to create connection string
     username = 'matt.shepherd'
-    password = os.getenv("sqlPassword")
-    driver = 'SQL Server Native Client 11.0'
-    server = os.getenv("sqlServer")
+    # password = os.getenv("sqlPassword")
+    password = "4rsenal!PG01"
+    driver = '{ODBC Driver 17 for SQL Server}'
+    # server = os.getenv("sqlServer")
+    server = "fse-inf-live-uk.database.windows.net"
     database = 'AzureCognitive'
     table = 'AzureBlobVideos'
     ## Create connection string
     connectionString = f'DRIVER={driver};SERVER={server};PORT=1433;DATABASE={database};UID={username};PWD={password}'
     logging.info(f'Connection string created: {connectionString}')
-    logging.info(f"IP address: {socket.gethostbyname(socket.getfqdn())}")
     ## Create SQL query to use
     sqlQuery = f"SELECT * FROM {table}"
     with pyodbc.connect(connectionString) as conn:
@@ -111,7 +111,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
     listOfFrameNumbers = yield context.call_activity(
                                     name='ReturnFrameNumbers',
                                     input_=videoDetails)
-    logging.info(f'List of {len(listOfFrameNumbers)} generated')
+    logging.info(f'List of {len(json.loads(listOfFrameNumbers))} generated')
 
     ## Create images from list
     values = yield context.call_activity(

@@ -68,11 +68,13 @@ def getContainerAndConnString(sport,
 
 def main(videoDetails: vidDets) -> str:
     ## Get blob details
-    blobDetails,timeToCut,frameNumberList,sport,event = videoDetails
+    blobDetails,timeToCut,frameNumberList0,sport,event = videoDetails
     blobOptions = json.loads(blobDetails)
     container = blobOptions['container']
     fileURL = blobOptions['fileUrl']
     fileName = blobOptions['blob']
+    frameNumberList = json.loads(frameNumberList0)
+    logging.info(f"frameNumberList (type: {type(frameNumberList)}, length: {len(frameNumberList)}) received")
     # ## Get clean video name to be used as folder name (without ".mp4" on the end)
     # vidName = MyFunctions.cleanUpVidName(fileName.split("/")[-1])[:-4]
     ## Return the container name and connection string to insert images into
@@ -80,19 +82,25 @@ def main(videoDetails: vidDets) -> str:
                                                         sport,
                                                         container
                                                         )
+    logging.info(f"containerOutput: {containerOutput}")
+    logging.info(f"connectionStringOutput: {connectionStringOutput}")
     ## Set the file name to be used
     if event is not None:
         fileNameFolder = event
     else:
         ## Blob name without ".mp4"
         fileNameFolder = fileName.split("/")[-1][:-4]
+    logging.info(f"fileNameFolder: {fileNameFolder}")
     ## Create BlockBlobService object to be used to upload blob to container
     block_blob_service = BlockBlobService(connection_string=connectionStringOutput)
     logging.info(f'BlockBlobService created for account "{block_blob_service.account_name}"')
     ## Create container (will do nothing if container already exists)
-    block_blob_service.create_container(container_name=containerOutput)
+    existsAlready = block_blob_service.create_container(container_name=containerOutput,
+                                                        fail_on_exist=False)
+    logging.info(f"Container ({containerOutput}) created, if doesn't exist already")
     ## Open the video
     vidcap = cv2.VideoCapture(fileURL)
+    logging.info("VideoCapture object created")
     ## Loop through the frame numbers
     for frameNumberName,frameNumber in enumerate(frameNumberList,1):
         ## Create path to save image to
@@ -113,5 +121,5 @@ def main(videoDetails: vidDets) -> str:
                 block_blob_service.create_blob_from_bytes(container_name=containerOutput,
                                                             blob_name=imagePath,
                                                             blob=byte_im)
-
+    logging.info("Finished looping through frames")
     return True
