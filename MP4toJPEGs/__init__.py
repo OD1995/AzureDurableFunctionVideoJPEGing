@@ -11,10 +11,11 @@ from collections import namedtuple
 import cv2
 import json
 from azure.storage.blob import BlockBlobService
-import sys
+# import sys
 import os
-sys.path.append(os.path.abspath('.'))
-import MyFunctions
+# sys.path.append(os.path.abspath('.'))
+# import MyFunctions
+import re
 
 vidDets = namedtuple('VideoDetails',
                         ['blobDetails',
@@ -22,6 +23,47 @@ vidDets = namedtuple('VideoDetails',
                          'frameNumberList',
                          'sport',
                          'event'])
+
+def getContainerAndConnString(sport,
+                                container):
+    """
+    Using the sport value from the AzureBlobVideos SQL table and
+    the container the MP4 is currently in, work out which container
+    and blob storage account to insert images into
+    """
+    ## # Make some adjustments to make the container name as ready as possible
+    ## Convert all `sport` characters to lower case
+    if sport is not None:
+        isNotNone = True
+        _sport_ = "".join([x.lower() if isinstance(x,str)
+                            else "" if x == " " else x
+                            for x in sport])
+        ## Replace double hyphens
+        _sport_ = _sport_.replace("--","-").replace("--","-")
+
+        ## # Make some checks
+        ## Check that the length is between 3 and 63 charachters
+        length = (len(_sport_) >= 3) & (len(_sport_) <= 63)
+        ## Check that all characters are either a-z, 0-9 or -
+        rightCharTypes = True if re.match("^[a-z0-9-]*$", _sport_) else False
+        ## Check that the first character is either a-z or 0-9
+        firstCharRight = True if re.match("^[a-z0-9]*$", _sport_[0]) else False
+        ## Check that the last character is either a-z or 0-9
+        lastCharRight = True if re.match("^[a-z0-9]*$", _sport_[-1]) else False
+    else:
+        isNotNone = False
+        length = False
+        rightCharTypes = False
+        firstCharRight = False
+        lastCharRight = False
+        _sport_ = ""
+
+
+
+    if isNotNone & length & rightCharTypes & firstCharRight & lastCharRight:
+        return  _sport_,os.getenv("fsecustomvisionimagesConnectionString")
+    else:
+        return container,os.getenv("fsevideosConnectionString")
 
 
 def main(videoDetails: vidDets) -> str:
@@ -34,7 +76,7 @@ def main(videoDetails: vidDets) -> str:
     # ## Get clean video name to be used as folder name (without ".mp4" on the end)
     # vidName = MyFunctions.cleanUpVidName(fileName.split("/")[-1])[:-4]
     ## Return the container name and connection string to insert images into
-    containerOutput, connectionStringOutput = MyFunctions.getContainerAndConnString(
+    containerOutput, connectionStringOutput = getContainerAndConnString(
                                                         sport,
                                                         container
                                                         )
