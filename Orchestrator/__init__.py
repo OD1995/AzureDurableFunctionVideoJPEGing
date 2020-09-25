@@ -67,7 +67,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
     
     ## Get AzureBlobVideos table from SQL, in dict form
     abv = getAzureBlobVideos2()
-    logging.info(f"AzureBlobVideos table retrieved - {len(abv)} rows")
+    logging.info(f"AzureBlobVideos table retrieved, rows: {len(abv)}")
 
     ## If the video name is in the dict, extract the information
     try:
