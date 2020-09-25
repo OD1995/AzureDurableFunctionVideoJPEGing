@@ -50,8 +50,8 @@ def main(videoDetails: vidDets) -> list:
     logging.info('Video metadata acquired')
     logging.info(f"frameCount: {str(frameCount)}")
     ## If frame count negative, download locally and try again
-    if frameCount < 0:
-        logging.info("Frame count negative so local download needed")
+    if frameCount <= 0:
+        logging.info("Frame count greater than 0, so local download needed")
         with tempfile.TemporaryDirectory() as dirpath:
             ## Get blob and save to local directory
             vidLocalPath = fr"{dirpath}\{fileName}"
