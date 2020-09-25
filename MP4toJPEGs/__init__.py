@@ -94,10 +94,16 @@ def main(videoDetails: vidDets) -> str:
     ## Create BlockBlobService object to be used to upload blob to container
     block_blob_service = BlockBlobService(connection_string=connectionStringOutput)
     logging.info(f'BlockBlobService created for account "{block_blob_service.account_name}"')
+    ## Get names of all containers in the blob storage account
+    containerNames = [x.name
+                        for x in block_blob_service.list_containers()]
     ## Create container (will do nothing if container already exists)
-    existsAlready = block_blob_service.create_container(container_name=containerOutput,
-                                                        fail_on_exist=False)
-    logging.info(f"Container ({containerOutput}) created, if doesn't exist already")
+    if containerOutput not in containerNames:
+        existsAlready = block_blob_service.create_container(container_name=containerOutput,
+                                                            fail_on_exist=False)
+        logging.info(f"Container '{containerOutput}' didn't exist, now has been created")
+    else:
+        logging.info(f"Container '{containerOutput}' exists already'")
     ## Open the video
     vidcap = cv2.VideoCapture(fileURL)
     logging.info("VideoCapture object created")
