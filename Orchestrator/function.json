@@ -3,6 +3,7 @@
   "bindings": [
     {
       "name": "context",
+      "taskHub": "TaskHubOD",
       "type": "orchestrationTrigger",
       "direction": "in"
     }
