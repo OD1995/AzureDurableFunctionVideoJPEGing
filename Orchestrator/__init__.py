@@ -69,16 +69,16 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                                     input_=videoDetails)
     logging.info(f'List of {len(json.loads(listOfFrameNumbers))} generated')
 
-    ## Create images from list
-    # values = yield context.call_activity(
-    #                                 name='MP4toJPEGs',
-    #                                 input_=vidDets(blobDetails=context._input,
-    #                                                 timeToCut=None,
-    #                                                 frameNumberList=listOfFrameNumbers,
-    #                                                 sport=sport,
-    #                                                 event=event)
-    #                                         )
-    # logging.info("Images generated!")
-    return "values"
+    # Create images from list
+    values = yield context.call_activity(
+                                    name='MP4toJPEGs',
+                                    input_=vidDets(blobDetails=context._input,
+                                                    timeToCut=None,
+                                                    frameNumberList=listOfFrameNumbers,
+                                                    sport=sport,
+                                                    event=event)
+                                            )
+    logging.info("Images generated!")
+    return values
 logging.info("We're on line 83")
 main = df.Orchestrator.create(orchestrator_function)
