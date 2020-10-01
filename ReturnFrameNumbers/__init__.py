@@ -49,9 +49,10 @@ def main(videoDetails: vidDets) -> list:
     frameCount = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
     logging.info('Video metadata acquired')
     logging.info(f"frameCount: {str(frameCount)}")
+    logging.info(f"FPS: {fps}")
     ## If frame count negative, download locally and try again
     if frameCount <= 0:
-        logging.info("Frame count greater than 0, so local download needed")
+        logging.info("Frame count greater than 0, so local download needed (ReturnFrameNumbers)")
         with tempfile.TemporaryDirectory() as dirpath:
             ## Get blob and save to local directory
             vidLocalPath = fr"{dirpath}\{fileName}"
@@ -72,6 +73,7 @@ def main(videoDetails: vidDets) -> list:
     ## Get number of frames wanted per second
     wantedFPS = 1
     takeEveryN = math.floor(fps/wantedFPS)
+    logging.info(f"Taking 1 image for every {takeEveryN} frames")
     if timeToCutStr != "2095-03-13 00:00:00.00000":
         ## Work out when the recording starts based on the filename
         vidName = fileName.split("\\")[-1].replace(".mp4","")

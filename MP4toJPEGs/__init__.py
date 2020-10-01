@@ -11,11 +11,12 @@ from collections import namedtuple
 import cv2
 import json
 from azure.storage.blob import BlockBlobService
-# import sys
 import os
-# sys.path.append(os.path.abspath('.'))
-# import MyFunctions
 import re
+import sys
+sys.path.append(os.path.abspath('.'))
+import MyClasses
+import tempfile
 
 vidDets = namedtuple('VideoDetails',
                         ['blobDetails',
@@ -23,6 +24,38 @@ vidDets = namedtuple('VideoDetails',
                          'frameNumberList',
                          'sport',
                          'event'])
+
+def createBlobs(
+       vidcap,
+       frameNumber,
+       frameNumberName,
+       fileNameFolder,
+       block_blob_service,
+       containerOutput
+                   ):
+    ## Create path to save image to
+    frameName = (5 - len(str(frameNumberName)))*"0" + str(frameNumberName)
+    imagePath = fr"{fileNameFolder}\{frameName}.jpeg"
+    ## Set the video to the correct frame
+    vidcap.set(cv2.CAP_PROP_POS_FRAMES,
+                frameNumber)
+    logging.info(f"Video set to frame number: {frameNumber}")
+    ## Create the image
+    success,image = vidcap.read()
+    logging.info(f"Image read, success: {success}, `image` type: {type(image)}")
+    if success:
+        ## Encode image
+        success2, image2 = cv2.imencode(".jpeg", image)
+        logging.info(f"Image encoded, success2: {success2}, `image2` type: {type(image2)}")
+        if success2:
+            ## Convert image2 (numpy.ndarray) to bytes
+            byte_im = image2.tobytes()
+            logging.info("Image converted to bytes")
+            ## Create the new blob
+            block_blob_service.create_blob_from_bytes(container_name=containerOutput,
+                                                        blob_name=imagePath,
+                                                        blob=byte_im)
+            logging.info(f"Blob ({imagePath}) created....")
 
 def getContainerAndConnString(sport,
                                 container):
@@ -97,8 +130,10 @@ def main(videoDetails: vidDets) -> str:
     ## Get names of all containers in the blob storage account
     containerNames = [x.name
                         for x in block_blob_service.list_containers()]
+    logging.info(f"List of containerNames received, length: {len(containerNames)}")
     ## Create container (will do nothing if container already exists)
     if containerOutput not in containerNames:
+        logging.info(f"Container '{containerOutput}' doesn't exist")
         existsAlready = block_blob_service.create_container(container_name=containerOutput,
                                                             fail_on_exist=False)
         logging.info(f"Container '{containerOutput}' didn't exist, now has been created")
@@ -107,25 +142,51 @@ def main(videoDetails: vidDets) -> str:
     ## Open the video
     vidcap = cv2.VideoCapture(fileURL)
     logging.info("VideoCapture object created")
-    ## Loop through the frame numbers
-    for frameNumberName,frameNumber in enumerate(frameNumberList,1):
-        ## Create path to save image to
-        frameName = (5 - len(str(frameNumberName)))*"0" + str(frameNumberName)
-        imagePath = fr"{fileNameFolder}\{frameName}.jpeg"
-        ## Set the video to the correct frame
-        vidcap.set(cv2.CAP_PROP_POS_FRAMES,
-                    frameNumber)
-        ## Create the image
-        success,image = vidcap.read()
-        if success:
-            ## Encode image
-            success2, image2 = cv2.imencode(".jpeg", image)
-            if success2:
-                ## Convert image2 (numpy.ndarray) to bytes
-                byte_im = image2.tobytes() 
-                ## Create the new blob
-                block_blob_service.create_blob_from_bytes(container_name=containerOutput,
-                                                            blob_name=imagePath,
-                                                            blob=byte_im)
+    success,image = vidcap.read()
+    ## Get metadata
+    fps = vidcap.get(cv2.CAP_PROP_FPS)
+    frameCount = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+    logging.info('Video metadata acquired')
+    logging.info(f"frameCount: {str(frameCount)}")
+    logging.info(f"FPS: {fps}")
+    ## If frame count negative, download locally and try again
+    if frameCount <= 0:
+        logging.info("Frame count greater than 0, so local download needed (MP4toJPEGs)")
+        with tempfile.TemporaryDirectory() as dirpath:
+            ## Get blob and save to local directory
+            vidLocalPath = fr"{dirpath}\{fileName}"
+            # logging.info("About to get connection string")
+            # logging.info(f"CS: {os.environ['fsevideosConnectionString']}")
+            fsevideosConnectionString = "DefaultEndpointsProtocol=https;AccountName=fsevideos;AccountKey=xfYncTDRCowSrISbdsSknM05jqOrJXc4Oavq7BQ56yR7uQ7MCeL5aXmBsbsE+SZ+++xGt2oy6FvrEdpryc+vwQ==;EndpointSuffix=core.windows.net"
+            logging.info("About to create BlockBlobService")
+            block_blob_service = BlockBlobService(connection_string=fsevideosConnectionString)
+            logging.info("BlockBlobService created")
+            block_blob_service.get_blob_to_path(container_name=container,
+                                                blob_name=fileName,
+                                                file_path=vidLocalPath)
+            logging.info("Blob saved to path")
+            with MyClasses.MyVideoCapture(vidLocalPath) as vc1:
+                for frameNumberName,frameNumber in enumerate(frameNumberList,1):
+                    ## Create blobs
+                    createBlobs(
+                                vc1,
+                                frameNumber,
+                                frameNumberName,
+                                fileNameFolder,
+                                block_blob_service,
+                                containerOutput
+                                )
+    else:
+        ## Loop through the frame numbers
+        for frameNumberName,frameNumber in enumerate(frameNumberList,1):
+            ## Create blobs
+            createBlobs(
+                        vidcap,
+                        frameNumber,
+                        frameNumberName,
+                        fileNameFolder,
+                        block_blob_service,
+                        containerOutput
+                        )
     logging.info("Finished looping through frames")
     return True

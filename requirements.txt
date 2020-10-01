@@ -1,12 +1,12 @@
-azure-functions
 azure-functions-durable>=1.0.0b6
+# datetime
+# python-dateutil
+# pytz
+# sqlalchemy
+
+azure-functions
 azure-storage-blob==1.5.0
-datetime
 opencv-python
 pandas
-pathlib
 pyodbc==4.0.30
-python-dateutil
-pytz
 requests
-sqlalchemy

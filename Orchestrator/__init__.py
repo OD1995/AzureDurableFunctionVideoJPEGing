@@ -45,11 +45,14 @@ def getAzureBlobVideos2():
         df = pd.read_sql(sql=sqlQuery,
                             con=conn)
     logging.info(f"Dataframe with shape {df.shape} received")
-    ## Dict - VideoName : (Sport,Event) 
-    dfDict = {vn : (s,e)
-                for vn,s,e in zip(df.VideoName,
-                                    df.Sport,
-                                    df.Event)}
+    ## Dict - VideoName : (Sport,Event)
+    try:
+        dfDict = {vn : (s,e)
+                    for vn,s,e in zip(df.VideoName,
+                                        df.Sport,
+                                        df.Event)}
+    except:
+        logging.info("Error received")
 
     return dfDict
 
@@ -77,7 +80,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
         videoName = cleanUpVidName(videoName0)
         ## Get relevant sport and event name for the video (excluding '.mp4')
         sport,event = abv[videoName[:-4]]
-        logging.info("sport and event retrieved")
+        logging.info(f"sport ({sport}) and event ({event}) retrieved")
     except KeyError:
         sport = None
         event = None
@@ -122,7 +125,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                                                     sport=sport,
                                                     event=event)
                                             )
-
+    logging.info("Images generated!")
     return values
 logging.info("We're on line 83")
 main = df.Orchestrator.create(orchestrator_function)
