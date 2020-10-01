@@ -18,6 +18,7 @@ import sys
 import os
 sys.path.append(os.path.abspath('.'))
 import MyClasses
+import MyFunctions
 
 vidDets = namedtuple('VideoDetails',
                         ['blobDetails',
@@ -40,36 +41,44 @@ def main(videoDetails: vidDets) -> list:
     logging.info(f"container: {container}")
     logging.info(f"fileName: {fileName}")
     logging.info(f"timeToCutStr: {timeToCutStr}")
+    ## Create BlockBlobService object
+    logging.info("About to create BlockBlobService")
+    block_blob_service = BlockBlobService(connection_string=os.environ['fsevideosConnectionString'])
+    ## Get SAS file URL
+    sasFileURL = MyFunctions.get_SAS_URL(
+                        fileURL=fileURL,
+                        block_blob_service=block_blob_service,
+                        container=container
+                        )
     ## Open the video
-    vidcap = cv2.VideoCapture(fileURL)
+    vidcap = cv2.VideoCapture(sasFileURL)
     logging.info(f"VideoCapture object created for {fileURL}")
     success,image = vidcap.read()
     ## Get metadata
     fps = vidcap.get(cv2.CAP_PROP_FPS)
     frameCount = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
     logging.info('Video metadata acquired')
-    logging.info(f"frameCount: {str(frameCount)}")
-    logging.info(f"FPS: {fps}")
+    logging.info(f"(initial) frameCount: {str(frameCount)}")
+    logging.info(f"(initial) FPS: {fps}")
     ## If frame count negative, download locally and try again
     if frameCount <= 0:
-        logging.info("Frame count greater than 0, so local download needed (ReturnFrameNumbers)")
+        logging.info("Frame count not greater than 0, so local download needed (ReturnFrameNumbers)")
         with tempfile.TemporaryDirectory() as dirpath:
             ## Get blob and save to local directory
             vidLocalPath = fr"{dirpath}\{fileName}"
-            # logging.info("About to get connection string")
-            # logging.info(f"CS: {os.environ['fsevideosConnectionString']}")
-            fsevideosConnectionString = "DefaultEndpointsProtocol=https;AccountName=fsevideos;AccountKey=xfYncTDRCowSrISbdsSknM05jqOrJXc4Oavq7BQ56yR7uQ7MCeL5aXmBsbsE+SZ+++xGt2oy6FvrEdpryc+vwQ==;EndpointSuffix=core.windows.net"
-            logging.info("About to create BlockBlobService")
-            block_blob_service = BlockBlobService(connection_string=fsevideosConnectionString)
+
             logging.info("BlockBlobService created")
             block_blob_service.get_blob_to_path(container_name=container,
                                                 blob_name=fileName,
-                                                file_path=vidLocalPath)
+                                                file_path=vidLocalPath,
+                                                max_connections=1)
             logging.info("Blob saved to path")
             with MyClasses.MyVideoCapture(vidLocalPath) as vc1:
                 frameCount = int(vc1.get(cv2.CAP_PROP_FRAME_COUNT))
+                fps = vc1.get(cv2.CAP_PROP_FPS)
 
             logging.info(f"(new) frameCount: {str(frameCount)}")
+            logging.info(f"(new) FPS: {fps}")
     ## Get number of frames wanted per second
     wantedFPS = 1
     takeEveryN = math.floor(fps/wantedFPS)
