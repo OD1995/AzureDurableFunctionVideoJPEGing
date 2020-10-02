@@ -122,5 +122,5 @@ def main(videoDetails: vidDets) -> str:
                         block_blob_serviceOUTPUT,
                         containerOutput
                         )
-    logging.info("Finished looping through frames")
+    logging.info("Finished looping through all the frames")
     return "it worked"
