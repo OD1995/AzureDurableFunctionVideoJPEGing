@@ -141,7 +141,7 @@ def getAzureBlobVideos2():
     logging.info(f"Dataframe with shape {df.shape} received")
     ## Dict - VideoName : (Sport,Event)
     try:
-        dfDict = {vn : (s,e)
+        dfDict = {vn.replace(".mp4","") : (s,e)
                     for vn,s,e in zip(df.VideoName,
                                         df.Sport,
                                         df.Event)}
