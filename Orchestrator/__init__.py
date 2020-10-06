@@ -41,25 +41,25 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
 
     if sport == 'baseball':
         ## Get time to cut from, using MLB API
-        timeToCut = yield context.call_activity(name='CallAPI',
-                                                input_=context._input)
-        logging.info('timeToCut acquired from API')
+        timeToCutUTC = yield context.call_activity(name='CallAPI',
+                                                    input_=context._input)
+        logging.info('timeToCutUTC acquired from API')
     else:
-        ## Make timeToCut a time far in the future (my 100th birthday)
-        timeToCut = "2095-03-13 00:00:00.00000"
-        logging.info("Not baseball, so distant timeToCut provided")
+        ## Make timeToCutUTC a time far in the future (my 100th birthday)
+        timeToCutUTC = "2095-03-13 00:00:00.00000"
+        logging.info("Not baseball, so distant timeToCutUTC provided")
 
-    ## Get list of frame numbers to convert to JPEGs, ending at `timeToCut`
+    ## Get list of frame numbers to convert to JPEGs, ending at `timeToCutUTC`
     ##    Use composite object
     ##     - https://docs.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-orchestrations?tabs=python#passing-multiple-parameters
     vidDets = namedtuple('VideoDetails',
                          ['blobDetails',
-                          'timeToCut',
+                          'timeToCutUTC',
                           'frameNumberList',
                           'sport',
                           'event'])
     videoDetails = vidDets(blobDetails=context._input,
-                            timeToCut=timeToCut,
+                            timeToCutUTC=timeToCutUTC,
                             frameNumberList=None,
                             sport=None,
                             event=None)
@@ -73,7 +73,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
     values = yield context.call_activity(
                                     name='MP4toJPEGs',
                                     input_=vidDets(blobDetails=context._input,
-                                                    timeToCut=None,
+                                                    timeToCutUTC=None,
                                                     frameNumberList=listOfFrameNumbers,
                                                     sport=sport,
                                                     event=event)

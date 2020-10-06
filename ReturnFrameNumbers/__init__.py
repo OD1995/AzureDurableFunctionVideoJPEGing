@@ -19,10 +19,11 @@ import os
 sys.path.append(os.path.abspath('.'))
 import MyClasses
 import MyFunctions
+import pytz
 
 vidDets = namedtuple('VideoDetails',
                         ['blobDetails',
-                         'timeToCut'
+                         'timeToCutUTC'
                          'frameNumberList',
                          'sport',
                          'event'])
@@ -30,12 +31,12 @@ vidDets = namedtuple('VideoDetails',
 
 def main(videoDetails: vidDets) -> list:
     ## Get blob details
-    blobDetails,timeToCutStr,frameNumberList,sport,event = videoDetails
+    blobDetails,timeToCutUTCStr,frameNumberList,sport,event = videoDetails
     blobOptions = json.loads(blobDetails)
     fileURL = blobOptions['fileUrl']
     container = blobOptions['container']
     fileName = blobOptions['blob']
-    timeToCut = datetime.strptime(timeToCutStr,
+    timeToCutUTC = datetime.strptime(timeToCutUTCStr,
                                     "%Y-%m-%d %H:%M:%S.%f")
     logging.info(f"fileURL: {fileURL}")
     logging.info(f"container: {container}")
@@ -56,10 +57,12 @@ def main(videoDetails: vidDets) -> list:
     success,image = vidcap.read()
     ## Get metadata
     fps = vidcap.get(cv2.CAP_PROP_FPS)
+    fpsInt = int(round(fps,0))
     frameCount = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
     logging.info('Video metadata acquired')
     logging.info(f"(initial) frameCount: {str(frameCount)}")
     logging.info(f"(initial) FPS: {fps}")
+    logging.info(f"(initial) int FPS: {fpsInt}")
     ## If frame count negative, download locally and try again
     if frameCount <= 0:
         logging.info("Frame count not greater than 0, so local download needed (ReturnFrameNumbers)")
@@ -76,24 +79,32 @@ def main(videoDetails: vidDets) -> list:
             with MyClasses.MyVideoCapture(vidLocalPath) as vc1:
                 frameCount = int(vc1.get(cv2.CAP_PROP_FRAME_COUNT))
                 fps = vc1.get(cv2.CAP_PROP_FPS)
+                fpsInt = int(round(fps,0)))
 
             logging.info(f"(new) frameCount: {str(frameCount)}")
             logging.info(f"(new) FPS: {fps}")
+            logging.info(f"(new) int FPS: {fpsInt}")
     ## Get number of frames wanted per second
     wantedFPS = 1
-    takeEveryN = math.floor(fps/wantedFPS)
+    takeEveryN = math.floor(fpsInt/wantedFPS)
     logging.info(f"Taking 1 image for every {takeEveryN} frames")
     if timeToCutStr != "2095-03-13 00:00:00.00000":
+        utcTZ = pytz.timezone('UTC')
+        etTZ = pytz.timezone('America/New_York')
         ## Work out when the recording starts based on the filename
         vidName = fileName.split("\\")[-1].replace(".mp4","")
         vidName1 = vidName[:vidName.index("-")]
+        ## Get recording start and then assign it the US Eastern Time time zone
         recordingStart = datetime.strptime(f'{vidName1.split("_")[0]} {vidName1[-4:]}',
-                                            "%Y%m%d %H%M")
+                                        "%Y%m%d %H%M")
+        recordingStartET = etTZ.localize(recordingStart)
+        ## Convert it to UTC
+        recordingStartUTC = recordingStartET.astimezone(utcTZ).replace(tzinfo=None)
         ## Work out which frames to reject
-        frameToCutFrom = int((timeToCut - recordingStart).seconds * fps)
+        frameToCutFrom = int((timeToCutUTC - recordingStartUTC).seconds * fps)
     else:
         ## If last play is my 100th birthday, set a huge number that it'll never reach
-        frameToCutFrom = 1000000000
+        frameToCutFrom = 100000000000000
     logging.info("List of frame numbers about to be generated")
     ## Create list of frame numbers to be JPEGed
     listOfFrameNumbers = [i

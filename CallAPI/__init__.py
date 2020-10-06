@@ -82,25 +82,28 @@ def main(options: str) -> int:
             for x in betterListOfGames
             if (nameLookup[homeTeam] in x['h']) &
                 (nameLookup[awayTeam] in x['a'])][0]['g']
+    logging.info(f"Game ID ({gameID}) retrieved")
     ## Call MLB API to get game end
     gameResp = requests.get(f"https://statsapi.mlb.com/api/v1.1/game/{gameID}/feed/live")
     gameJS = gameResp.json()
     ## Get all plays not containing "status change"
-    allPlays = [x
-                for x in gameJS['liveData']['plays']['allPlays']
-                if "status change" not in x['playEvents'][0]['details']['description'].lower()]
-    ## Get last play end time
+    allPlays = []
+    for i,x in enumerate(gameJS['liveData']['plays']['allPlays']):
+        try:
+            if "status change" not in x['playEvents'][0]['details']['description'].lower():
+                allPlays.append(x)
+        except KeyError:
+            pass
+    ## Get last play
     lastPlay = allPlays[-1]
+    ## Get time of the end of the last play (in UTC)
     lastPlayEndString = lastPlay['about']["endTime"]
+    ## Convert to datetime object
     lastPlayEnd = dateutil.parser.parse(
                         lastPlayEndString
-                                    ).astimezone(
-                                            timezone(
-                                                'America/Chicago'
-                                                    )
-                                                ).replace(tzinfo=None)
+                                    ).replace(tzinfo=None)
     ## Work out which frames to reject
-    timeToCut = lastPlayEnd + timedelta(hours=1)
-    logging.info(f"Time to cut ({timeToCut}) retrieved")
-    return datetime.strftime(timeToCut,
+    timeToCutUTC = lastPlayEnd + timedelta(hours=1)
+    logging.info(f"Time to cut ({timeToCutUTC}) retrieved")
+    return datetime.strftime(timeToCutUTC,
                                 "%Y-%m-%d %H:%M:%S.%f")

@@ -20,7 +20,7 @@ import tempfile
 
 vidDets = namedtuple('VideoDetails',
                         ['blobDetails',
-                         'timeToCut'
+                         'timeToCutUTC'
                          'frameNumberList',
                          'sport',
                          'event'])
@@ -28,7 +28,7 @@ vidDets = namedtuple('VideoDetails',
 
 def main(videoDetails: vidDets) -> str:
     ## Get blob details
-    blobDetails,timeToCut,frameNumberList0,sport,event = videoDetails
+    blobDetails,timeToCutUTC,frameNumberList0,sport,event = videoDetails
     blobOptions = json.loads(blobDetails)
     container = blobOptions['container']
     fileURL = blobOptions['fileUrl']
