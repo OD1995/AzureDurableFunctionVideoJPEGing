@@ -101,6 +101,7 @@ def createBlobs(
     vidcap.set(cv2.CAP_PROP_POS_FRAMES,
                 frameNumber)
     logging.info(f"Video set to frame number: {frameNumber}")
+    logging.info(f"Frame number name: {frameNumberName}")
     ## Create the image
     success,image = vidcap.read()
     logging.info(f"Image read, success: {success}, `image` type: {type(image)}")

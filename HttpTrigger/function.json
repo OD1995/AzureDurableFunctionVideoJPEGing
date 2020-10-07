@@ -12,9 +12,14 @@
       ]
     },
     {
+      "name": "$return",
       "type": "http",
-      "direction": "out",
-      "name": "$return"
+      "direction": "out"
+    },
+    {
+      "name": "starter",
+      "type": "orchestrationClient",
+      "direction": "in"
     }
   ]
 }

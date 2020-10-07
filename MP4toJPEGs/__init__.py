@@ -20,7 +20,7 @@ import tempfile
 
 vidDets = namedtuple('VideoDetails',
                         ['blobDetails',
-                         'timeToCutUTC'
+                         'timeToCutUTC',
                          'frameNumberList',
                          'sport',
                          'event'])

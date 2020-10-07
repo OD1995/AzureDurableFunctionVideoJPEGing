@@ -23,7 +23,7 @@ import pytz
 
 vidDets = namedtuple('VideoDetails',
                         ['blobDetails',
-                         'timeToCutUTC'
+                         'timeToCutUTC',
                          'frameNumberList',
                          'sport',
                          'event'])
@@ -41,7 +41,7 @@ def main(videoDetails: vidDets) -> list:
     logging.info(f"fileURL: {fileURL}")
     logging.info(f"container: {container}")
     logging.info(f"fileName: {fileName}")
-    logging.info(f"timeToCutStr: {timeToCutStr}")
+    logging.info(f"timeToCutUTCStr: {timeToCutUTCStr}")
     ## Create BlockBlobService object
     logging.info("About to create BlockBlobService")
     block_blob_service = BlockBlobService(connection_string=os.environ['fsevideosConnectionString'])
@@ -79,7 +79,7 @@ def main(videoDetails: vidDets) -> list:
             with MyClasses.MyVideoCapture(vidLocalPath) as vc1:
                 frameCount = int(vc1.get(cv2.CAP_PROP_FRAME_COUNT))
                 fps = vc1.get(cv2.CAP_PROP_FPS)
-                fpsInt = int(round(fps,0)))
+                fpsInt = int(round(fps,0))
 
             logging.info(f"(new) frameCount: {str(frameCount)}")
             logging.info(f"(new) FPS: {fps}")
@@ -88,7 +88,7 @@ def main(videoDetails: vidDets) -> list:
     wantedFPS = 1
     takeEveryN = math.floor(fpsInt/wantedFPS)
     logging.info(f"Taking 1 image for every {takeEveryN} frames")
-    if timeToCutStr != "2095-03-13 00:00:00.00000":
+    if timeToCutUTCStr != "2095-03-13 00:00:00.00000":
         utcTZ = pytz.timezone('UTC')
         etTZ = pytz.timezone('America/New_York')
         ## Work out when the recording starts based on the filename
