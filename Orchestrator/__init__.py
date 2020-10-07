@@ -9,6 +9,7 @@
 import logging
 import json
 from collections import namedtuple
+from datetime import datetime
 import os
 import sys
 sys.path.append(os.path.abspath('.'))
@@ -20,7 +21,7 @@ import azure.durable_functions as df
 
 def orchestrator_function(context: df.DurableOrchestrationContext):
     logging.info("Orchestrator started")
-    
+    startUTC = datetime.utcnow()
     ## Get AzureBlobVideos table from SQL, in dict form
     abv = MyFunctions.getAzureBlobVideos2()
     logging.info(f"AzureBlobVideos table retrieved, rows: {len(abv)}")
@@ -32,12 +33,19 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
         ##    then remove them
         videoName = MyFunctions.cleanUpVidName(videoName0)
         ## Get relevant sport and event name for the video (excluding '.mp4')
-        sport,event = abv[videoName[:-4]]
-        logging.info(f"sport ({sport}) and event ({event}) retrieved")
+        videoID,sport,event = abv[videoName[:-4]]
+        logging.info(f"videoID ({videoID}), sport ({sport}) and event ({event}) retrieved")
     except KeyError:
+        videoID = None
         sport = None
         event = None
-        logging.info("Video not in AzureBlobVideos so sport and event both None")
+        logging.info("Video not in AzureBlobVideos so videoID, sport and event all assigned None")
+
+    ## Make sure `videoName` has got a value, otherwise give it None
+    try:
+        videoName
+    except NameError:
+        videoName = None
 
     if sport == 'baseball':
         ## Get time to cut from, using MLB API
@@ -70,7 +78,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
     logging.info(f'List of {len(json.loads(listOfFrameNumbers))} generated')
 
     # Create images from list
-    values = yield context.call_activity(
+    MP4toJPEGsoutput = yield context.call_activity(
                                     name='MP4toJPEGs',
                                     input_=vidDets(blobDetails=context._input,
                                                     timeToCutUTC=None,
@@ -78,7 +86,33 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                                                     sport=sport,
                                                     event=event)
                                             )
+    imagesCreated,outputContainer,outputBlobStorageAccount = json.loads(MP4toJPEGsoutput)
+    endUTC = datetime.utcnow()
     logging.info("Images generated!")
-    return values
+
+    ## Add line to SQL - using another composite object
+    UploadDetails = namedtuple('UploadDetails',
+                         ['startUTC',
+                          'endUTC',
+                          'videoID',
+                          'videoName',
+                          'event',
+                          'outputContainer',
+                          'outputBlobStorageAccount',
+                          'imagesCreated'])
+    returnMe = yield context.call_activity(
+                                    name='WriteToSQL',
+                                    input_=UploadDetails(
+                                                    startUTC=startUTC,
+                                                    endUTC=endUTC,
+                                                    videoID=videoID,
+                                                    videoName=videoName,
+                                                    event=event,
+                                                    outputContainer=outputContainer,
+                                                    outputBlobStorageAccount=outputBlobStorageAccount,
+                                                    imagesCreated=imagesCreated)
+                                            )
+
+    return returnMe
 logging.info("We're on line 83")
 main = df.Orchestrator.create(orchestrator_function)

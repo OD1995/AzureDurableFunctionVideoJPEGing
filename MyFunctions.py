@@ -1,48 +1,11 @@
 import os
 import re
-#from sqlalchemy import create_engine
 import pandas as pd
 from datetime import datetime, timedelta
 import logging
-#import socket
 import pyodbc
 import cv2
 from azure.storage.blob import ContainerPermissions
-
-
-#def getAzureBlobVideos():
-#    logging.info("getAzureBlobVideos started")
-#    ## Get information used to create connection string
-#    username = 'matt.shepherd'
-#    password = os.getenv("sqlPassword")
-#    driver = 'SQL+Server'
-#    server = os.getenv("sqlServer")
-#    database = 'AzureCognitive'
-#    table = 'AzureBlobVideos'
-#    ## Create connection string
-#    connectionString = f'mssql+pyodbc://{username}:{password}@{server}/{database}?driver={driver}'
-#    logging.info(f'Connection string created: {connectionString}')
-#    logging.info(f"IP address: {socket.gethostbyname(socket.getfqdn())}")
-#    ## Create engine
-#    engine = create_engine(connectionString,
-#                        fast_executemany=True)
-#    logging.info('engine created')
-#    ## Make connection
-#    conn = engine.connect()
-#    logging.info('engine connected')
-#    ## Get SQL table in pandas DataFrame
-#    df = pd.read_sql_table(table_name=table,
-#                            con=conn)
-#    ## Close connection
-#    conn.close()  
-#    ## Dict - VideoName : (Sport,Event) 
-#    dfDict = {vn : (s,e)
-#                for vn,s,e in zip(df.VideoName,
-#                                    df.Sport,
-#                                    df.Event)}
-#
-#    return dfDict
-
 
 def getContainerAndConnString(sport,
                                 container):
@@ -81,9 +44,9 @@ def getContainerAndConnString(sport,
 
 
     if isNotNone & length & rightCharTypes & firstCharRight & lastCharRight:
-        return  _sport_,os.getenv("fsecustomvisionimagesConnectionString")
+        return  _sport_,os.getenv("fsecustomvisionimagesConnectionString"),"fsecustomvisionimages"
     else:
-        return container,os.getenv("fsevideosConnectionString")
+        return container,os.getenv("fsevideosConnectionString"),"fsevideos"
 
 
 def createBlobs(
@@ -105,6 +68,8 @@ def createBlobs(
     ## Create the image
     success,image = vidcap.read()
     logging.info(f"Image read, success: {success}, `image` type: {type(image)}")
+    ## Create variable to be used later on to keep track of how many images generated
+    imageCreated = 0
     if success:
         ## Encode image
         success2, image2 = cv2.imencode(".jpeg", image)
@@ -118,16 +83,20 @@ def createBlobs(
                                                         blob_name=imagePath,
                                                         blob=byte_im)
             logging.info(f"Blob ({imagePath}) created....")
+            ## Image creation successful, so `imageCreated` to 1
+            imageCreated = 1
+    
+    return imageCreated
 
 def getAzureBlobVideos2():
     logging.info("getAzureBlobVideos started")
     ## Get information used to create connection string
     username = 'matt.shepherd'
-    # password = os.getenv("sqlPassword")
-    password = "4rsenal!PG01"
+    password = os.getenv("sqlPassword")
+    # password = "4rsenal!PG01"
     driver = '{ODBC Driver 17 for SQL Server}'
-    # server = os.getenv("sqlServer")
-    server = "fse-inf-live-uk.database.windows.net"
+    server = os.getenv("sqlServer")
+    # server = "fse-inf-live-uk.database.windows.net"
     database = 'AzureCognitive'
     table = 'AzureBlobVideos'
     ## Create connection string
@@ -141,13 +110,12 @@ def getAzureBlobVideos2():
                             con=conn)
     logging.info(f"Dataframe with shape {df.shape} received")
     ## Dict - VideoName : (Sport,Event)
-    try:
-        dfDict = {vn.replace(".mp4","") : (s,e)
-                    for vn,s,e in zip(df.VideoName,
-                                        df.Sport,
-                                        df.Event)}
-    except:
-        logging.info("Error received")
+    dfDict = {vn.replace(".mp4","") : (vID,s,e)
+                for vID,vn,s,e in zip(
+                                    df.VideoID,
+                                    df.VideoName,
+                                    df.Sport,
+                                    df.Event)}
 
     return dfDict
 
@@ -170,3 +138,10 @@ def get_SAS_URL(fileURL,
     expiry=datetime.utcnow() + timedelta(hours=1)
     )
     return f"{fileURL}?{sasTokenRead}"
+
+
+def sqlDateTimeFormat(x):
+    """
+    Convert a datetime object to a SQL-friendly string
+    """
+    return datetime.strftime(x,'%Y-%m-%d %H:%M:%S')

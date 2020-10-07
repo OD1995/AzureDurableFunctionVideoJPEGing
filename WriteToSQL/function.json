@@ -1,0 +1,10 @@
+{
+  "scriptFile": "__init__.py",
+  "bindings": [
+    {
+      "name": "UD",
+      "type": "activityTrigger",
+      "direction": "in"
+    }
+  ]
+}

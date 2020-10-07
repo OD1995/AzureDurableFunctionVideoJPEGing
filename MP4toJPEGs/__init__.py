@@ -26,7 +26,7 @@ vidDets = namedtuple('VideoDetails',
                          'event'])
 
 
-def main(videoDetails: vidDets) -> str:
+def main(videoDetails: vidDets):
     ## Get blob details
     blobDetails,timeToCutUTC,frameNumberList0,sport,event = videoDetails
     blobOptions = json.loads(blobDetails)
@@ -38,7 +38,7 @@ def main(videoDetails: vidDets) -> str:
     # ## Get clean video name to be used as folder name (without ".mp4" on the end)
     # vidName = MyFunctions.cleanUpVidName(fileName.split("/")[-1])[:-4]
     ## Return the container name and connection string to insert images into
-    containerOutput, connectionStringOutput = MyFunctions.getContainerAndConnString(
+    containerOutput, connectionStringOutput,bsaOutput = MyFunctions.getContainerAndConnString(
                                                         sport,
                                                         container
                                                         )
@@ -63,7 +63,7 @@ def main(videoDetails: vidDets) -> str:
     ## Create container (will do nothing if container already exists)
     if containerOutput not in containerNames:
         logging.info(f"Container '{containerOutput}' doesn't exist")
-        existsAlready = block_blob_serviceOUTPUT.create_container(container_name=containerOutput,
+        _ = block_blob_serviceOUTPUT.create_container(container_name=containerOutput,
                                                             fail_on_exist=False)
         logging.info(f"Container '{containerOutput}' didn't exist, now has been created")
     else:
@@ -85,6 +85,8 @@ def main(videoDetails: vidDets) -> str:
     logging.info('Video metadata acquired')
     logging.info(f"frameCount: {str(frameCount)}")
     logging.info(f"FPS: {fps}")
+    ## Create variable to keep track of number of images generated
+    imagesCreated = 0
     ## If frame count negative, download locally and try again
     if frameCount <= 0:
         logging.info("Frame count not greater than 0, so local download needed (MP4toJPEGs)")
@@ -102,7 +104,7 @@ def main(videoDetails: vidDets) -> str:
             with MyClasses.MyVideoCapture(vidLocalPath) as vc1:
                 for frameNumberName,frameNumber in enumerate(frameNumberList,1):
                     ## Create blobs
-                    MyFunctions.createBlobs(
+                    imageCreated = MyFunctions.createBlobs(
                                 vc1,
                                 frameNumber,
                                 frameNumberName,
@@ -110,11 +112,12 @@ def main(videoDetails: vidDets) -> str:
                                 block_blob_serviceOUTPUT,
                                 containerOutput
                                 )
+                    imagesCreated += imageCreated
     else:
         ## Loop through the frame numbers
         for frameNumberName,frameNumber in enumerate(frameNumberList,1):
             ## Create blobs
-            MyFunctions.createBlobs(
+            imageCreated = MyFunctions.createBlobs(
                         vidcap,
                         frameNumber,
                         frameNumberName,
@@ -122,5 +125,12 @@ def main(videoDetails: vidDets) -> str:
                         block_blob_serviceOUTPUT,
                         containerOutput
                         )
+            imagesCreated += imageCreated
     logging.info("Finished looping through all the frames")
-    return "it worked"
+    ## Load variables to be returned into one variable
+    returnMe = json.dumps([
+                            imagesCreated,
+                            containerOutput,
+                            bsaOutput
+                        ])
+    return returnMe
