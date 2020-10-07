@@ -13,6 +13,7 @@ import sys
 sys.path.append(os.path.abspath('.'))
 import MyFunctions
 from collections import namedtuple
+from datetime import datetime
 
 UploadDetails = namedtuple('UploadDetails',
                         ['startUTC',
@@ -25,10 +26,13 @@ UploadDetails = namedtuple('UploadDetails',
                         'imagesCreated'])
 
 def main(UD: UploadDetails) -> str:
-    (startUTC,endUTC,videoID,videoName,
+    (startUTCstr,endUTCstr,videoID,videoName,
     event,outputContainer,
     outputBlobStorageAccount,imagesCreated) = UD
-
+    startUTC = datetime.strptime(startUTCstr,
+                                    "%Y-%m-%d %H:%M:%S.%f")
+    endUTC = datetime.strptime(endUTCstr,
+                                    "%Y-%m-%d %H:%M:%S.%f")
     logging.info("WriteToSQL started")
     ## Get information used to create connection string
     username = 'matt.shepherd'
@@ -53,7 +57,7 @@ def main(UD: UploadDetails) -> str:
             "OutputBlobStorageAccount",
             "ImagesCreated"
             ]
-    vals = [
+    vals0 = [
             MyFunctions.sqlDateTimeFormat(startUTC),
             MyFunctions.sqlDateTimeFormat(endUTC),
             videoID,
@@ -63,6 +67,7 @@ def main(UD: UploadDetails) -> str:
             outputBlobStorageAccount,
             imagesCreated
             ]
+    vals = [str(x) for x in vals0]
     sqlQuery = f"INSERT INTO {table} ({','.join(cols)}) VALUES ({','.join(vals)});"
     with pyodbc.connect(connectionString) as conn:
         with conn.cursor() as cursor:

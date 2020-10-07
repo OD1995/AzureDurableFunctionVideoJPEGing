@@ -21,7 +21,8 @@ import azure.durable_functions as df
 
 def orchestrator_function(context: df.DurableOrchestrationContext):
     logging.info("Orchestrator started")
-    startUTC = datetime.utcnow()
+    startUTCstr = datetime.strftime(datetime.utcnow(),
+                                    "%Y-%m-%d %H:%M:%S.%f")
     ## Get AzureBlobVideos table from SQL, in dict form
     abv = MyFunctions.getAzureBlobVideos2()
     logging.info(f"AzureBlobVideos table retrieved, rows: {len(abv)}")
@@ -87,7 +88,8 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                                                     event=event)
                                             )
     imagesCreated,outputContainer,outputBlobStorageAccount = json.loads(MP4toJPEGsoutput)
-    endUTC = datetime.utcnow()
+    endUTCstr = datetime.strftime(datetime.utcnow(),
+                                    "%Y-%m-%d %H:%M:%S.%f")
     logging.info("Images generated!")
 
     ## Add line to SQL - using another composite object
@@ -103,8 +105,8 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
     returnMe = yield context.call_activity(
                                     name='WriteToSQL',
                                     input_=UploadDetails(
-                                                    startUTC=startUTC,
-                                                    endUTC=endUTC,
+                                                    startUTC=startUTCstr,
+                                                    endUTC=endUTCstr,
                                                     videoID=videoID,
                                                     videoName=videoName,
                                                     event=event,
