@@ -47,7 +47,7 @@ def main(UD: UploadDetails) -> str:
     connectionString = f'DRIVER={driver};SERVER={server};PORT=1433;DATABASE={database};UID={username};PWD={password}'
     logging.info(f'Connection string created: {connectionString}')
     ## Create SQL query to use
-    cols = [
+    cols0 = [
             "StartUTC",
             "EndUTC",
             "VideoID",
@@ -57,6 +57,7 @@ def main(UD: UploadDetails) -> str:
             "OutputBlobStorageAccount",
             "ImagesCreated"
             ]
+    cols = [MyFunctions.sqlColumn_ise(x) for x in cols0]
     vals0 = [
             MyFunctions.sqlDateTimeFormat(startUTC),
             MyFunctions.sqlDateTimeFormat(endUTC),
@@ -67,7 +68,7 @@ def main(UD: UploadDetails) -> str:
             outputBlobStorageAccount,
             imagesCreated
             ]
-    vals = [str(x) for x in vals0]
+    vals = [MyFunctions.sqlValue_ise(x) for x in vals0]
     sqlQuery = f"INSERT INTO {table} ({','.join(cols)}) VALUES ({','.join(vals)});"
     with pyodbc.connect(connectionString) as conn:
         with conn.cursor() as cursor:

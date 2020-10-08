@@ -145,3 +145,21 @@ def sqlDateTimeFormat(x):
     Convert a datetime object to a SQL-friendly string
     """
     return datetime.strftime(x,'%Y-%m-%d %H:%M:%S')
+
+def sqlColumn_ise(x):
+    """
+    Prepare string column for SQL
+    """
+    return f"[{x}]"
+
+
+def sqlValue_ise(x):
+    """
+    Prepare int/string value for SQL
+    """
+    if isinstance(x,str):
+        return f"'{x}'"
+    elif isinstance(x,int):
+        return str(x)
+    else:
+        raise ValueError(f'Value is {type(x)}, not str or int')
