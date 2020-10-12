@@ -161,5 +161,7 @@ def sqlValue_ise(x):
         return f"'{x}'"
     elif isinstance(x,int):
         return str(x)
+    elif isinstance(x,None):
+        return "NULL"
     else:
         raise ValueError(f'Value is {type(x)}, not str or int')
