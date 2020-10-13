@@ -37,10 +37,8 @@ def main(UD: UploadDetails) -> str:
     ## Get information used to create connection string
     username = 'matt.shepherd'
     password = os.getenv("sqlPassword")
-    # password = "4rsenal!PG01"
     driver = '{ODBC Driver 17 for SQL Server}'
     server = os.getenv("sqlServer")
-    # server = "fse-inf-live-uk.database.windows.net"
     database = 'AzureCognitive'
     table = 'AzureBlobVideoCompletes'
     ## Create connection string
