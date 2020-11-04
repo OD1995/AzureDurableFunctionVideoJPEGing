@@ -133,7 +133,7 @@ def get_SAS_URL(fileURL,
     sasTokenRead = block_blob_service.generate_container_shared_access_signature(
     container_name=container,
     permission=ContainerPermissions.READ,
-    expiry=datetime.utcnow() + timedelta(hours=1)
+    expiry=datetime.utcnow() + timedelta(hours=5)
     )
     return f"{fileURL}?{sasTokenRead}"
 

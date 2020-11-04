@@ -21,7 +21,7 @@ import azure.durable_functions as df
 
 def orchestrator_function(context: df.DurableOrchestrationContext):
     logging.info("Orchestrator started")
-    startUTCstr = datetime.strftime(datetime.utcnow(),
+    startUTCstr = datetime.strftime(context.current_utc_datetime,
                                     "%Y-%m-%d %H:%M:%S.%f")
     ## Get AzureBlobVideos table from SQL, in dict form
     abv = MyFunctions.getAzureBlobVideos2()
@@ -88,7 +88,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                                                     event=event)
                                             )
     imagesCreated,outputContainer,outputBlobStorageAccount = json.loads(MP4toJPEGsoutput)
-    endUTCstr = datetime.strftime(datetime.utcnow(),
+    endUTCstr = datetime.strftime(context.current_utc_datetime,
                                     "%Y-%m-%d %H:%M:%S.%f")
     logging.info("Images generated!")
 
