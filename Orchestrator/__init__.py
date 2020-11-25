@@ -34,12 +34,13 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
         ##    then remove them
         videoName = MyFunctions.cleanUpVidName(videoName0)
         ## Get relevant sport and event name for the video (excluding '.mp4')
-        videoID,sport,event = abv[videoName[:-4]]
+        videoID,sport,event,endpointID = abv[videoName[:-4]]
         logging.info(f"videoID ({videoID}), sport ({sport}) and event ({event}) retrieved")
     except KeyError:
         videoID = None
         sport = None
         event = None
+        endpointID = None
         logging.info("Video not in AzureBlobVideos so videoID, sport and event all assigned None")
 
     ## Make sure `videoName` has got a value, otherwise give it None
@@ -87,10 +88,36 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                                                     sport=sport,
                                                     event=event)
                                             )
-    imagesCreated,outputContainer,outputBlobStorageAccount = json.loads(MP4toJPEGsoutput)
+    (imagesCreatedList,imagesCreatedCount,
+        outputContainer,outputBlobStorageAccount) = json.loads(MP4toJPEGsoutput)
     endUTCstr = datetime.strftime(context.current_utc_datetime,
                                     "%Y-%m-%d %H:%M:%S.%f")
     logging.info("Images generated!")
+
+
+    ## If endpointID provided in `AzureBlobVideos`, add row to `ComputerVisionProccessingJobs` for each image
+    if endpointID is not None:
+        ## Create composite object to use
+        QueueDetails = namedtuple('QueueDetails',
+                            [
+                                'endpointID',
+                                'sport',
+                                'event',
+                                'blobDetails',
+                                'frameNumberList',
+                                'imagesCreatedList'
+                            ])
+        qpj_result = yield context.call_activity(
+            name="QueueProcessingJobs",
+            input_=QueueDetails(
+                endpointID=endpointID,
+                sport=sport,
+                event=event,
+                blobDetails=context._input,
+                frameNumberList=frameNumberList,
+                imagesCreatedList=imagesCreatedList
+            )
+        )
 
     ## Add line to SQL - using another composite object
     UploadDetails = namedtuple('UploadDetails',
@@ -101,8 +128,8 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                           'event',
                           'outputContainer',
                           'outputBlobStorageAccount',
-                          'imagesCreated'])
-    returnMe = yield context.call_activity(
+                          'imagesCreatedCount'])
+    wts_result = yield context.call_activity(
                                     name='WriteToSQL',
                                     input_=UploadDetails(
                                                     startUTC=startUTCstr,
@@ -112,9 +139,9 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                                                     event=event,
                                                     outputContainer=outputContainer,
                                                     outputBlobStorageAccount=outputBlobStorageAccount,
-                                                    imagesCreated=imagesCreated)
+                                                    imagesCreatedCount=imagesCreatedCount)
                                             )
 
-    return returnMe
-logging.info("We're on line 83")
+    return f"{qpj_result} & {wts_result}" if endpointID is not None else wts_result
+# logging.info("We're on line 83")
 main = df.Orchestrator.create(orchestrator_function)

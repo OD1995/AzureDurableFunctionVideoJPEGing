@@ -23,12 +23,12 @@ UploadDetails = namedtuple('UploadDetails',
                         'event',
                         'outputContainer',
                         'outputBlobStorageAccount',
-                        'imagesCreated'])
+                        'imagesCreatedCount'])
 
 def main(UD: UploadDetails) -> str:
     (startUTCstr,endUTCstr,videoID,videoName,
     event,outputContainer,
-    outputBlobStorageAccount,imagesCreated) = UD
+    outputBlobStorageAccount,imagesCreatedCount) = UD
     startUTC = datetime.strptime(startUTCstr,
                                     "%Y-%m-%d %H:%M:%S.%f")
     endUTC = datetime.strptime(endUTCstr,
@@ -64,7 +64,7 @@ def main(UD: UploadDetails) -> str:
             event,
             outputContainer,
             outputBlobStorageAccount,
-            imagesCreated
+            imagesCreatedCount
             ]
     vals = [MyFunctions.sqlValue_ise(x) for x in vals0]
     sqlQuery = f"INSERT INTO {table} ({','.join(cols)}) VALUES ({','.join(vals)});"

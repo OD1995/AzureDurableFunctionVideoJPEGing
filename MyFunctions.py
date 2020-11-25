@@ -68,8 +68,8 @@ def createBlobs(
     ## Create the image
     success,image = vidcap.read()
     logging.info(f"Image read, success: {success}, `image` type: {type(image)}")
-    ## Create variable to be used later on to keep track of how many images generated
-    imageCreated = 0
+    ## Create variable to be used later on to keep track of which images were generated
+    imageCreated = False
     if success:
         ## Encode image
         success2, image2 = cv2.imencode(".jpeg", image)
@@ -83,37 +83,43 @@ def createBlobs(
                                                         blob_name=imagePath,
                                                         blob=byte_im)
             logging.info(f"Blob ({imagePath}) created....")
-            ## Image creation successful, so `imageCreated` to 1
-            imageCreated = 1
+            ## Image creation successful, so `imageCreated` to True
+            imageCreated = True
     
     return imageCreated
 
-def getAzureBlobVideos2():
-    logging.info("getAzureBlobVideos started")
-    ## Get information used to create connection string
+def get_connection_string():
     username = 'matt.shepherd'
-    password = os.getenv("sqlPassword")
+    password = "4rsenal!PG01"
     driver = '{ODBC Driver 17 for SQL Server}'
-    server = os.getenv("sqlServer")
+    # driver = 'SQL Server Native Client 11.0'
+    server = "fse-inf-live-uk.database.windows.net"
     database = 'AzureCognitive'
-    table = 'AzureBlobVideos'
     ## Create connection string
     connectionString = f'DRIVER={driver};SERVER={server};PORT=1433;DATABASE={database};UID={username};PWD={password}'
+    
+    return connectionString
+
+def getAzureBlobVideos2():
+    logging.info("getAzureBlobVideos started")
+    ## Create connection string
+    connectionString = get_connection_string()
     logging.info(f'Connection string created: {connectionString}')
     ## Create SQL query to use
-    sqlQuery = f"SELECT * FROM {table}"
+    sqlQuery = "SELECT * FROM AzureBlobVideos"
     with pyodbc.connect(connectionString) as conn:
         ## Get SQL table in pandas DataFrame
         df = pd.read_sql(sql=sqlQuery,
                             con=conn)
     logging.info(f"Dataframe with shape {df.shape} received")
     ## Dict - VideoName : (Sport,Event)
-    dfDict = {vn.replace(".mp4","") : (vID,s,e)
-                for vID,vn,s,e in zip(
+    dfDict = {vn.replace(".mp4","") : (vID,s,e,eID)
+                for vID,vn,s,e,eID in zip(
                                     df.VideoID,
                                     df.VideoName,
                                     df.Sport,
-                                    df.Event)}
+                                    df.Event,
+                                    df.EndpointId)}
 
     return dfDict
 
@@ -163,3 +169,19 @@ def sqlValue_ise(x):
         return "NULL"
     else:
         raise ValueError(f'Value is {type(x)}, not str or int')
+
+
+def execute_sql_command(
+    sp_string,
+    sp_values
+):
+    connectionString = get_connection_string()
+    ## Connect to SQL server
+    cursor = pyodbc.connect(connectionString).cursor()
+    ## Execute command
+    cursor.execute(sp_string, sp_values)
+    ## Get returned values
+    rc = cursor.fetchval()
+    cursor.commit()
+
+    return rc

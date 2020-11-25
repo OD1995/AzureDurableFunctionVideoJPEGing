@@ -86,7 +86,7 @@ def main(videoDetails: vidDets):
     logging.info(f"frameCount: {str(frameCount)}")
     logging.info(f"FPS: {fps}")
     ## Create variable to keep track of number of images generated
-    imagesCreated = 0
+    imagesCreated = []
     ## If frame count negative, download locally and try again
     if frameCount <= 0:
         logging.info("Frame count not greater than 0, so local download needed (MP4toJPEGs)")
@@ -125,11 +125,12 @@ def main(videoDetails: vidDets):
                         block_blob_serviceOUTPUT,
                         containerOutput
                         )
-            imagesCreated += imageCreated
+            imagesCreated.append(imageCreated)
     logging.info("Finished looping through all the frames")
     ## Load variables to be returned into one variable
     returnMe = json.dumps([
                             imagesCreated,
+                            len(imagesCreated),
                             containerOutput,
                             bsaOutput
                         ])
