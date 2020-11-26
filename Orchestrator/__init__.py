@@ -114,7 +114,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                 sport=sport,
                 event=event,
                 blobDetails=context._input,
-                frameNumberList=frameNumberList,
+                frameNumberList=listOfFrameNumbers,
                 imagesCreatedList=imagesCreatedList
             )
         )

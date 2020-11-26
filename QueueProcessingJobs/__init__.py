@@ -29,69 +29,83 @@ def main(QD: QueueDetails) -> str:
 
     (endpointID, sport,
         event, blobDetails,
-        frameNumberList0,imagesCreatedList0) = QD
+        frameNumberList0,imagesCreatedList) = QD
     ## Convert strings to lists where needed
     frameNumberList = json.loads(frameNumberList0)
-    imagesCreatedList = json.loads(imagesCreatedList0)
+    # imagesCreatedList = json.loads(imagesCreatedList0)
     ## Get list of frames that were successfully created
     createdFramesList = [
         f
         for f,c in zip(frameNumberList,imagesCreatedList)
         if c
     ]
-    ## Define string to use to execut stored procedure
-    AddImages_string = """
-    DECLARE	@return_value int
 
-    EXEC	@return_value = [dbo].[spComputerVisionCloudProcessing_AddImages]
-            @Sport = ?,
-            @Event = ?,
-            @Filename = ?
 
-    SELECT	'Return Value' = @return_value
-    """
-    AddJobToCloudProcessing_string = """
-    EXEC	@JobId = ?
-            @JobCreated = ?,
-            @JobPickedUp = ?,
-            @EndpointId = ?,
-            @ImageId = ?,
-            @Sport = ?,
-            @Event = ?,
-            @Filename = ?,
-            @AzureReadRequestId = ?
-    """
+    # AddJobToCloudProcessing_string = """
+    # {CALL spComputerVisionCloudProcessing_AddJobToCloudProcessing (?,?,?,?,?,?,?,?,?)}
+    # """
+    # AddJobToCloudProcessing_string = """
+    # EXEC spComputerVisionCloudProcessing_AddJobToCloudProcessing {},{},{},{},{},{},{},{},{}
+    # """
     ## Loop through the list of created frames
-    for frame in createdFramesList:
+    for i, frame in enumerate(createdFramesList):
         ## Get Azure image file name
         fileName = (5 - len(str(frame)))*"0" + str(frame)
         ## Execute the spComputerVisionCloudProcessing_AddImages stored procedure
         ##     and get the imageID back
-        AddImages_values = (
-            sport,
-            event,
-            fileName
-        )
+        AddImages_string = f"""
+        DECLARE	@return_value int
+
+        EXEC	@return_value = [dbo].[spComputerVisionCloudProcessing_AddImages]
+                @Sport = '{sport}',
+                @Event = '{event}',
+                @Filename = '{fileName}'
+
+        SELECT	'Return Value' = @return_value
+        """
         imageID = MyFunctions.execute_sql_command(
             sp_string=AddImages_string,
-            sp_values=AddImages_values
+            i=i
         )
         ## Execute the spComputerVisionCloudProcessing_AddJobToCloudProcessing
         ##    stored procedure to add a new row to ComputerVisionProcessingJobs
-        AddJobToCloudProcessing_values = (
-            "NEWID()", #JobId
-            "GETUTCDATE()", #JobCreated
-            "NULL", #JobPickedUp
-            endpointID, #EndpointId
-            imageID, #ImageId
-            sport, #sport
-            event, #event
-            fileName, #filename
-            "NULL", #AzureReadRequestId
-        )
+        # AddJobToCloudProcessing_values = (
+        #     "NEWID()", #JobId
+        #     "GETUTCDATE()", #JobCreated
+        #     "NULL", #JobPickedUp
+        #     sqlValue_ise(endpointID), #EndpointId
+        #     sqlValue_ise(imageID), #ImageId
+        #     sqlValue_ise(sport), #sport
+        #     sqlValue_ise(event), #event
+        #     sqlValue_ise(fileName), #filename
+        #     "NULL", #AzureReadRequestId
+        # )
+        AddJobToCloudProcessing_string = f"""
+        DECLARE	@return_value int
+
+        DECLARE @NewJobId uniqueidentifier
+        DECLARE @NewJobCreated datetime2
+
+        SET @NewJobId = NEWID()
+        SET @NewJobCreated = GETUTCDATE()
+
+        EXEC	@return_value = [dbo].[spComputerVisionCloudProcessing_AddJobToCloudProcessing]
+                @JobId = @NewJobId,
+                @JobCreated = @NewJobCreated,
+                @JobPickedUp = NULL,
+                @EndpointId = '{endpointID}',
+                @ImageId = '{imageID}',
+                @Sport = '{sport}',
+                @Event = '{event}',
+                @Filename = '{fileName}',
+                @AzureReadRequestId = NULL
+
+        SELECT	'Return Value' = @return_value
+        """
         _ = MyFunctions.execute_sql_command(
             sp_string=AddJobToCloudProcessing_string,
-            sp_values=AddJobToCloudProcessing_values
+            i=i
         )
+        logging.info(f"Image number {i+1} of {len(createdFramesList)} done")
 
     return f"{len(createdFramesList)} rows added to ComputerVisionProcessingJobs"

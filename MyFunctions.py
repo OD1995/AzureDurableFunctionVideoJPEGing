@@ -173,13 +173,14 @@ def sqlValue_ise(x):
 
 def execute_sql_command(
     sp_string,
-    sp_values
+    i
 ):
     connectionString = get_connection_string()
     ## Connect to SQL server
     cursor = pyodbc.connect(connectionString).cursor()
     ## Execute command
-    cursor.execute(sp_string, sp_values)
+    logging.info(sp_string)
+    cursor.execute(sp_string)
     ## Get returned values
     rc = cursor.fetchval()
     cursor.commit()
