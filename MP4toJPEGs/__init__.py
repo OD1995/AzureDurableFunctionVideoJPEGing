@@ -10,7 +10,7 @@ import logging
 from collections import namedtuple
 import cv2
 import json
-from azure.storage.blob import BlockBlobService
+from azure.storage.blob import BlockBlobService, PublicAccess
 import os
 import sys
 sys.path.append(os.path.abspath('.'))
@@ -63,8 +63,10 @@ def main(videoDetails: vidDets):
     ## Create container (will do nothing if container already exists)
     if containerOutput not in containerNames:
         logging.info(f"Container '{containerOutput}' doesn't exist")
-        _ = block_blob_serviceOUTPUT.create_container(container_name=containerOutput,
-                                                            fail_on_exist=False)
+        _ = block_blob_serviceOUTPUT.create_container(
+            container_name=containerOutput,
+            public_access=PublicAccess.Blob,
+            fail_on_exist=False)
         logging.info(f"Container '{containerOutput}' didn't exist, now has been created")
     else:
         logging.info(f"Container '{containerOutput}' exists already'")
