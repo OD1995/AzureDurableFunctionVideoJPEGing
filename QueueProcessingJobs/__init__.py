@@ -31,14 +31,22 @@ def main(QD: QueueDetails) -> str:
         event, blobDetails,
         frameNumberList0,imagesCreatedList) = QD
     ## Convert strings to lists where needed
-    frameNumberList = json.loads(frameNumberList0)
+    # frameNumberList = json.loads(frameNumberList0)
     # imagesCreatedList = json.loads(imagesCreatedList0)
     ## Get list of frames that were successfully created
+    ##    imagesCreatedList - list of True/False, whether that frame was created
     createdFramesList = [
         f
-        for f,c in zip(frameNumberList,imagesCreatedList)
+        for f,c in enumerate(imagesCreatedList,1)
         if c
     ]
+    ## Get the container to use
+    blobOptions = json.loads(blobDetails)
+    container = blobOptions['container']
+    containerToUse = MyFunctions.getContainer(
+    sport=sport,
+    container=container
+    )
 
 
     # AddJobToCloudProcessing_string = """
@@ -50,19 +58,21 @@ def main(QD: QueueDetails) -> str:
     ## Loop through the list of created frames
     for i, frame in enumerate(createdFramesList):
         ## Get Azure image file name
-        fileName = (5 - len(str(frame)))*"0" + str(frame)
+        fileName = (5 - len(str(frame)))*"0" + str(frame) + ".jpeg "
         ## Execute the spComputerVisionCloudProcessing_AddImages stored procedure
         ##     and get the imageID back
         AddImages_string = f"""
         DECLARE	@return_value int
 
         EXEC	@return_value = [dbo].[spComputerVisionCloudProcessing_AddImages]
-                @Sport = '{sport}',
+                @Sport = '{containerToUse}',
                 @Event = '{event}',
                 @Filename = '{fileName}'
 
         SELECT	'Return Value' = @return_value
         """
+        # logging.info("AddImages_string")
+        # logging.info(AddImages_string)
         imageID = MyFunctions.execute_sql_command(
             sp_string=AddImages_string,
             i=i
@@ -95,13 +105,15 @@ def main(QD: QueueDetails) -> str:
                 @JobPickedUp = NULL,
                 @EndpointId = '{endpointID}',
                 @ImageId = '{imageID}',
-                @Sport = '{sport}',
+                @Sport = '{containerToUse}',
                 @Event = '{event}',
                 @Filename = '{fileName}',
                 @AzureReadRequestId = NULL
 
         SELECT	'Return Value' = @return_value
         """
+        # logging.info("AddJobToCloudProcessing_string")
+        # logging.info(AddJobToCloudProcessing_string)
         _ = MyFunctions.execute_sql_command(
             sp_string=AddJobToCloudProcessing_string,
             i=i
