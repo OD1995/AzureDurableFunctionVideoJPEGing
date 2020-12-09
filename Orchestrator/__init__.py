@@ -34,14 +34,22 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
         ##    then remove them
         videoName = MyFunctions.cleanUpVidName(videoName0)
         ## Get relevant sport and event name for the video (excluding '.mp4')
-        videoID,sport,event,endpointID = abv[videoName[:-4]]
-        logging.info(f"videoID ({videoID}), sport ({sport}) and event ({event}) retrieved")
+        videoID,sport,event,endpointID,multipleVideoEvent = abv[videoName[:-4]]
+        for metric,value in [
+            ("videoID",videoID),
+            ("sport",sport),
+            ("event",event),
+            ("endpointID",endpointID),
+            ("multipleVideoEvent",multipleVideoEvent)
+        ]:
+            logging.info(f"{metric}: {value}")
     except KeyError:
         videoID = None
         sport = None
         event = None
         endpointID = None
-        logging.info("Video not in AzureBlobVideos so videoID, sport and event all assigned None")
+        multipleVideoEvent = None
+        logging.info("Video not in AzureBlobVideos so relevant values assigned None")
 
     ## Make sure `videoName` has got a value, otherwise give it None
     try:
@@ -67,12 +75,14 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                           'timeToCutUTC',
                           'frameNumberList',
                           'sport',
-                          'event'])
+                          'event',
+                          'multipleVideoEvent'])
     videoDetails = vidDets(blobDetails=context._input,
                             timeToCutUTC=timeToCutUTC,
                             frameNumberList=None,
                             sport=None,
-                            event=None)
+                            event=None,
+                            multipleVideoEvent=None)
     logging.info("Initial videoDetails object created")
     listOfFrameNumbers = yield context.call_activity(
                                     name='ReturnFrameNumbers',
@@ -86,9 +96,11 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                                                     timeToCutUTC=None,
                                                     frameNumberList=listOfFrameNumbers,
                                                     sport=sport,
-                                                    event=event)
+                                                    event=event,
+                                                    multipleVideoEvent=multipleVideoEvent)
                                             )
     (imagesCreatedList,imagesCreatedCount,
+        imageNames,
         outputContainer,outputBlobStorageAccount) = json.loads(MP4toJPEGsoutput)
     endUTCstr = datetime.strftime(context.current_utc_datetime,
                                     "%Y-%m-%d %H:%M:%S.%f")
@@ -105,7 +117,8 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                                 'event',
                                 'blobDetails',
                                 'frameNumberList',
-                                'imagesCreatedList'
+                                'imagesCreatedList',
+                                'imageNames'
                             ])
         qpj_result = yield context.call_activity(
             name="QueueProcessingJobs",
@@ -115,7 +128,8 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                 event=event,
                 blobDetails=context._input,
                 frameNumberList=listOfFrameNumbers,
-                imagesCreatedList=imagesCreatedList
+                imagesCreatedList=imagesCreatedList,
+                imageNames=imageNames
             )
         )
 

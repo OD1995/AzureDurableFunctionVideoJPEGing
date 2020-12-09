@@ -31,7 +31,7 @@ vidDets = namedtuple('VideoDetails',
 
 def main(videoDetails: vidDets) -> list:
     ## Get blob details
-    blobDetails,timeToCutUTCStr,frameNumberList,sport,event = videoDetails
+    blobDetails,timeToCutUTCStr,frameNumberList,sport,event,multipleVideoEvent = videoDetails
     blobOptions = json.loads(blobDetails)
     fileURL = blobOptions['fileUrl']
     container = blobOptions['container']

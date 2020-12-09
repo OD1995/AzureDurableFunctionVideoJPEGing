@@ -91,13 +91,30 @@ def createBlobs(
        vidcap,
        frameNumber,
        frameNumberName,
-       fileNameFolder,
+       event,
+       fileName,
        block_blob_service,
-       containerOutput
+       containerOutput,
+       multipleVideoEvent
                    ):
+    ## Name of video (without ".mp4")
+    mp4Name = fileName.split("/")[-1][:-4]
+    ## Set the file name to be used
+    if event is not None:
+        folderName = event
+    else:
+        ## Blob name without ".mp4"
+        folderName = mp4Name
+
+    ## If it's a video from a multi video event, give it a different name
+    ##    `multipleVideoEvent` is boolean
+    if multipleVideoEvent:
+        frameNameEnd = (5 - len(str(frameNumberName)))*"0" + str(frameNumberName)
+        frameName = fr"{mp4Name}_{frameNameEnd}.jpeg"
+    else:
+        frameName = (5 - len(str(frameNumberName)))*"0" + str(frameNumberName) + ".jpeg"
     ## Create path to save image to
-    frameName = (5 - len(str(frameNumberName)))*"0" + str(frameNumberName)
-    imagePath = fr"{fileNameFolder}\{frameName}.jpeg"
+    imagePath = fr"{folderName}\{frameName}"
     ## Set the video to the correct frame
     vidcap.set(cv2.CAP_PROP_POS_FRAMES,
                 frameNumber)
@@ -124,7 +141,7 @@ def createBlobs(
             ## Image creation successful, so `imageCreated` to True
             imageCreated = True
     
-    return imageCreated
+    return imageCreated,frameName
 
 def get_connection_string():
     username = 'matt.shepherd'
@@ -150,6 +167,7 @@ def getAzureBlobVideos2():
                                 ,Sport
                                 ,Event
                                 ,EndpointId
+                                ,MultipleVideoEvent
                     FROM        AzureBlobVideos
                 """
     with pyodbc.connect(connectionString) as conn:
@@ -158,13 +176,14 @@ def getAzureBlobVideos2():
                             con=conn)
     logging.info(f"Dataframe with shape {df.shape} received")
     ## Dict - VideoName : (Sport,Event)
-    dfDict = {vn.replace(".mp4","") : (vID,s,e,eID)
-                for vID,vn,s,e,eID in zip(
+    dfDict = {vn.replace(".mp4","") : (vID,s,e,eID,mve)
+                for vID,vn,s,e,eID,mve in zip(
                                     df.VideoID,
                                     df.VideoName,
                                     df.Sport,
                                     df.Event,
-                                    df.EndpointId)}
+                                    df.EndpointId,
+                                    df.MultipleVideoEvent)}
 
     return dfDict
 
@@ -217,8 +236,7 @@ def sqlValue_ise(x):
 
 
 def execute_sql_command(
-    sp_string,
-    i
+    sp_string
 ):
     connectionString = get_connection_string()
     ## Connect to SQL server

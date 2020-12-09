@@ -28,13 +28,14 @@ vidDets = namedtuple('VideoDetails',
 
 def main(videoDetails: vidDets):
     ## Get blob details
-    blobDetails,timeToCutUTC,frameNumberList0,sport,event = videoDetails
+    blobDetails,timeToCutUTC,frameNumberList0,sport,event,multipleVideoEvent = videoDetails
     blobOptions = json.loads(blobDetails)
     container = blobOptions['container']
     fileURL = blobOptions['fileUrl']
     fileName = blobOptions['blob']
     frameNumberList = json.loads(frameNumberList0)
     logging.info(f"frameNumberList (type: {type(frameNumberList)}, length: {len(frameNumberList)}) received")
+    logging.info(f"multipleVideoEvent: {multipleVideoEvent}, type: {type(multipleVideoEvent)}")
     # ## Get clean video name to be used as folder name (without ".mp4" on the end)
     # vidName = MyFunctions.cleanUpVidName(fileName.split("/")[-1])[:-4]
     ## Return the container name and connection string to insert images into
@@ -44,13 +45,6 @@ def main(videoDetails: vidDets):
                                                         )
     logging.info(f"containerOutput: {containerOutput}")
     logging.info(f"connectionStringOutput: {connectionStringOutput}")
-    ## Set the file name to be used
-    if event is not None:
-        fileNameFolder = event
-    else:
-        ## Blob name without ".mp4"
-        fileNameFolder = fileName.split("/")[-1][:-4]
-    logging.info(f"fileNameFolder: {fileNameFolder}")
     ## Create BlockBlobService object to be used to get blob from container
     block_blob_serviceINPUT = BlockBlobService(connection_string=os.getenv("fsevideosConnectionString"))
     ## Create BlockBlobService object to be used to upload blob to container
@@ -89,6 +83,7 @@ def main(videoDetails: vidDets):
     logging.info(f"FPS: {fps}")
     ## Create variable to keep track of number of images generated
     imagesCreated = []
+    imageNames = []
     ## If frame count negative, download locally and try again
     if frameCount <= 0:
         logging.info("Frame count not greater than 0, so local download needed (MP4toJPEGs)")
@@ -106,34 +101,41 @@ def main(videoDetails: vidDets):
             with MyClasses.MyVideoCapture(vidLocalPath) as vc1:
                 for frameNumberName,frameNumber in enumerate(frameNumberList,1):
                     ## Create blobs
-                    imageCreated = MyFunctions.createBlobs(
-                                vc1,
-                                frameNumber,
-                                frameNumberName,
-                                fileNameFolder,
-                                block_blob_serviceOUTPUT,
-                                containerOutput
+                    imageCreated,imageName = MyFunctions.createBlobs(
+                                vidcap=vc1,
+                                frameNumber=frameNumber,
+                                frameNumberName=frameNumberName,
+                                event=event,
+                                fileName=fileName,
+                                block_blob_service=block_blob_serviceOUTPUT,
+                                containerOutput=containerOutput,
+                                multipleVideoEvent=multipleVideoEvent
                                 )
-                    imagesCreated += imageCreated
+                    imagesCreated.append(imageCreated)
+                    imageNames.append(imageName)
     else:
         ## Loop through the frame numbers
         for frameNumberName,frameNumber in enumerate(frameNumberList,1):
             ## Create blobs
-            imageCreated = MyFunctions.createBlobs(
-                        vidcap,
-                        frameNumber,
-                        frameNumberName,
-                        fileNameFolder,
-                        block_blob_serviceOUTPUT,
-                        containerOutput
+            imageCreated,imageName = MyFunctions.createBlobs(
+                        vidcap=vidcap,
+                        frameNumber=frameNumber,
+                        frameNumberName=frameNumberName,
+                        event=event,
+                        fileName=fileName,
+                        block_blob_service=block_blob_serviceOUTPUT,
+                        containerOutput=containerOutput,
+                        multipleVideoEvent=multipleVideoEvent
                         )
             imagesCreated.append(imageCreated)
+            imageNames.append(imageName)
     logging.info("Finished looping through all the frames")
     ## Load variables to be returned into one variable
     returnMe = json.dumps([
-                            imagesCreated,
-                            len(imagesCreated),
-                            containerOutput,
-                            bsaOutput
+                            imagesCreated # list of Trues/Falses
+                            ,len(imagesCreated) # length of above list
+                            ,imageNames # list of names of images (whether created or not)
+                            ,containerOutput # container the images were created in
+                            ,bsaOutput # blob storage account the above container is in
                         ])
     return returnMe

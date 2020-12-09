@@ -29,16 +29,19 @@ def main(QD: QueueDetails) -> str:
 
     (endpointID, sport,
         event, blobDetails,
-        frameNumberList0,imagesCreatedList) = QD
+        frameNumberList0,imagesCreatedList,
+        imageNames) = QD
     ## Convert strings to lists where needed
     # frameNumberList = json.loads(frameNumberList0)
     # imagesCreatedList = json.loads(imagesCreatedList0)
     ## Get list of frames that were successfully created
     ##    imagesCreatedList - list of True/False, whether that frame was created
     createdFramesList = [
-        f
-        for f,c in enumerate(imagesCreatedList,1)
-        if c
+        imageName
+        for trueOrFalse,imageName in zip(
+            imagesCreatedList,
+            imageNames)
+        if trueOrFalse
     ]
     ## Get the container to use
     blobOptions = json.loads(blobDetails)
@@ -56,9 +59,10 @@ def main(QD: QueueDetails) -> str:
     # EXEC spComputerVisionCloudProcessing_AddJobToCloudProcessing {},{},{},{},{},{},{},{},{}
     # """
     ## Loop through the list of created frames
-    for i, frame in enumerate(createdFramesList):
+    for i, fileName in enumerate(createdFramesList):
         ## Get Azure image file name
-        fileName = (5 - len(str(frame)))*"0" + str(frame) + ".jpeg "
+        # fileName = (5 - len(str(frame)))*"0" + str(frame) + ".jpeg "
+        # fileName = f"{imageName}.jpeg"
         ## Execute the spComputerVisionCloudProcessing_AddImages stored procedure
         ##     and get the imageID back
         AddImages_string = f"""
@@ -115,8 +119,7 @@ def main(QD: QueueDetails) -> str:
         # logging.info("AddJobToCloudProcessing_string")
         # logging.info(AddJobToCloudProcessing_string)
         _ = MyFunctions.execute_sql_command(
-            sp_string=AddJobToCloudProcessing_string,
-            i=i
+            sp_string=AddJobToCloudProcessing_string
         )
         logging.info(f"Image number {i+1} of {len(createdFramesList)} done")
 
