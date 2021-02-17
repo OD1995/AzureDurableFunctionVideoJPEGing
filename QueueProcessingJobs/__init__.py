@@ -78,8 +78,7 @@ def main(QD: QueueDetails) -> str:
         # logging.info("AddImages_string")
         # logging.info(AddImages_string)
         imageID = MyFunctions.execute_sql_command(
-            sp_string=AddImages_string,
-            i=i
+            sp_string=AddImages_string
         )
         ## Execute the spComputerVisionCloudProcessing_AddJobToCloudProcessing
         ##    stored procedure to add a new row to ComputerVisionProcessingJobs
