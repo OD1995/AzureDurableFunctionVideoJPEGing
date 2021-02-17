@@ -31,8 +31,9 @@ def main(UD: UploadDetails) -> str:
     outputBlobStorageAccount,imagesCreatedCount) = UD
     startUTC = datetime.strptime(startUTCstr,
                                     "%Y-%m-%d %H:%M:%S.%f")
-    endUTC = datetime.strptime(datetime.now(),
-                                    "%Y-%m-%d %H:%M:%S.%f")
+#     endUTC = datetime.strptime(endUTCstr,
+#                                     "%Y-%m-%d %H:%M:%S.%f")
+    endUTC = datetime.now()
     logging.info("WriteToSQL started")
     ## Get information used to create connection string
     username = 'matt.shepherd'
