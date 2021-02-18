@@ -44,13 +44,15 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
             ##    then remove them
             videoName = MyFunctions.cleanUpVidName(videoName0)
             ## Get relevant sport and event name for the video (excluding '.mp4')
-            videoID,sport,event,endpointID,multipleVideoEvent = abv[videoName[:-4]]
+            (videoID,sport,event,endpointID,
+                multipleVideoEvent,samplingProportion) = abv[videoName[:-4]]
             for metric,value in [
                 ("videoID",videoID),
                 ("sport",sport),
                 ("event",event),
                 ("endpointID",endpointID),
-                ("multipleVideoEvent",multipleVideoEvent)
+                ("multipleVideoEvent",multipleVideoEvent),
+                ("samplingProportion",samplingProportion)
             ]:
                 logging.info(f"{metric}: {value}")
         except KeyError:
@@ -59,6 +61,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
             event = None
             endpointID = None
             multipleVideoEvent = None
+            samplingProportion = None
             logging.info("Video not in AzureBlobVideos so relevant values assigned None")
 
         ## Make sure `videoName` has got a value, otherwise give it None
@@ -86,13 +89,15 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                             'frameNumberList',
                             'sport',
                             'event',
-                            'multipleVideoEvent'])
+                            'multipleVideoEvent',
+                            'samplingProportion'])
         videoDetails = vidDets(blobDetails=context._input,
                                 timeToCutUTC=timeToCutUTC,
                                 frameNumberList=None,
                                 sport=None,
                                 event=None,
-                                multipleVideoEvent=None)
+                                multipleVideoEvent=None,
+                                samplingProportion=samplingProportion)
         logging.info("Initial videoDetails object created")
         listOfFrameNumbers = yield context.call_activity(
                                         name='ReturnFrameNumbers',
@@ -107,7 +112,8 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                                                         frameNumberList=listOfFrameNumbers,
                                                         sport=sport,
                                                         event=event,
-                                                        multipleVideoEvent=multipleVideoEvent)
+                                                        multipleVideoEvent=multipleVideoEvent,
+                                                        samplingProportion=None)
                                                 )
         (imagesCreatedList,imagesCreatedCount,
             imageNames,

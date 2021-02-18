@@ -22,16 +22,19 @@ import MyFunctions
 import pytz
 
 vidDets = namedtuple('VideoDetails',
-                        ['blobDetails',
-                         'timeToCutUTC',
-                         'frameNumberList',
-                         'sport',
-                         'event'])
+                    ['blobDetails',
+                    'timeToCutUTC',
+                    'frameNumberList',
+                    'sport',
+                    'event',
+                    'multipleVideoEvent',
+                    'samplingProportion'])
 
 
 def main(videoDetails: vidDets) -> list:
     ## Get blob details
-    blobDetails,timeToCutUTCStr,frameNumberList,sport,event,multipleVideoEvent = videoDetails
+    (blobDetails,timeToCutUTCStr,frameNumberList,
+    sport,event,multipleVideoEvent,samplingProportion) = videoDetails
     blobOptions = json.loads(blobDetails)
     fileURL = blobOptions['fileUrl']
     container = blobOptions['container']
@@ -85,7 +88,10 @@ def main(videoDetails: vidDets) -> list:
             logging.info(f"(new) FPS: {fps}")
             logging.info(f"(new) int FPS: {fpsInt}")
     ## Get number of frames wanted per second
-    wantedFPS = 1
+    if samplingProportion is None:
+        wantedFPS = 1
+    else:
+        wantedFPS = samplingProportion
     takeEveryN = math.floor(fpsInt/wantedFPS)
     logging.info(f"Taking 1 image for every {takeEveryN} frames")
     if timeToCutUTCStr != "2095-03-13 00:00:00.00000":
@@ -110,5 +116,8 @@ def main(videoDetails: vidDets) -> list:
     listOfFrameNumbers = [i
                             for i in range(frameCount)
                             if (i % takeEveryN == 0) & (i <= frameToCutFrom)]
+    ## If takeEveryN is so high that listOfFrameNumbers is empty, provide the first frame
+    if len(listOfFrameNumbers) == 0:
+        listOfFrameNumbers = [0]
     logging.info(f"listOfFrameNumbers created with {len(listOfFrameNumbers)} elements")
     return json.dumps(listOfFrameNumbers)
