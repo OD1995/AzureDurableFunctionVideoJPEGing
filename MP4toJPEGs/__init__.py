@@ -28,7 +28,8 @@ vidDets = namedtuple('VideoDetails',
 
 def main(videoDetails: vidDets):
     ## Get blob details
-    blobDetails,timeToCutUTC,frameNumberList0,sport,event,multipleVideoEvent = videoDetails
+    (blobDetails,timeToCutUTC,frameNumberList0,
+        sport,event,multipleVideoEvent,samplingProportion) = videoDetails
     blobOptions = json.loads(blobDetails)
     container = blobOptions['container']
     fileURL = blobOptions['fileUrl']
@@ -99,7 +100,7 @@ def main(videoDetails: vidDets):
                                                 max_connections=1)
             logging.info("Blob saved to path")
             with MyClasses.MyVideoCapture(vidLocalPath) as vc1:
-                for frameNumberName,frameNumber in enumerate(frameNumberList,1):
+                for frameNumberName,frameNumber in frameNumberList:
                     ## Create blobs
                     imageCreated,imageName = MyFunctions.createBlobs(
                                 vidcap=vc1,
@@ -115,7 +116,7 @@ def main(videoDetails: vidDets):
                     imageNames.append(imageName)
     else:
         ## Loop through the frame numbers
-        for frameNumberName,frameNumber in enumerate(frameNumberList,1):
+        for frameNumberName,frameNumber in frameNumberList:
             ## Create blobs
             imageCreated,imageName = MyFunctions.createBlobs(
                         vidcap=vidcap,

@@ -87,13 +87,6 @@ def main(videoDetails: vidDets) -> list:
             logging.info(f"(new) frameCount: {str(frameCount)}")
             logging.info(f"(new) FPS: {fps}")
             logging.info(f"(new) int FPS: {fpsInt}")
-    ## Get number of frames wanted per second
-    if samplingProportion is None:
-        wantedFPS = 1
-    else:
-        wantedFPS = samplingProportion
-    takeEveryN = math.floor(fpsInt/wantedFPS)
-    logging.info(f"Taking 1 image for every {takeEveryN} frames")
     if timeToCutUTCStr != "2095-03-13 00:00:00.00000":
         utcTZ = pytz.timezone('UTC')
         etTZ = pytz.timezone('America/New_York')
@@ -112,12 +105,40 @@ def main(videoDetails: vidDets) -> list:
         ## If last play is my 100th birthday, set a huge number that it'll never reach
         frameToCutFrom = 100000000000000
     logging.info("List of frame numbers about to be generated")
-    ## Create list of frame numbers to be JPEGed
-    listOfFrameNumbers = [i
-                            for i in range(frameCount)
-                            if (i % takeEveryN == 0) & (i <= frameToCutFrom)]
-    ## If takeEveryN is so high that listOfFrameNumbers is empty, provide the first frame
-    if len(listOfFrameNumbers) == 0:
-        listOfFrameNumbers = [0]
-    logging.info(f"listOfFrameNumbers created with {len(listOfFrameNumbers)} elements")
-    return json.dumps(listOfFrameNumbers)
+    ## Get number of frames wanted per second
+    if samplingProportion is None:
+        wantedFPS = 1
+    else:
+        wantedFPS = samplingProportion
+    takeEveryN_requested = math.floor(fpsInt/wantedFPS)
+    takeEveryN_1FPS = math.floor(fpsInt/1)
+    logging.info(f"Taking 1 image for every {takeEveryN_requested} frames")
+    ## Create list of frame numbers, under the assumption of 1 FPS
+    listOfFrameNumbers_1FPS = [
+        i
+        for i in range(frameCount)
+        if (i % takeEveryN_1FPS == 0) & (i <= frameToCutFrom)
+        ]
+    ## If video is shorter than a minute, return all the frames (@ 1 FPS)
+    if len(listOfFrameNumbers_1FPS) <= 60:
+        listOfFrameNumbersAndFrames = [
+            (i,frame)
+            for i,frame in enumerate(listOfFrameNumbers_1FPS,1)
+        ]
+    ## Otherwise, get the first min @ 1 FPS and the rest @ requested FPS
+    else:
+        ## Get first minute's frames @ 1 FPS
+        firstMinute = [
+            (i,frame)
+            for i,frame in enumerate(listOfFrameNumbers_1FPS[:60],1)
+        ]
+        ## Create list of frame numbers to be JPEGed
+        remainingMinutes = [
+            (i,frame)
+            for i,frame in enumerate(listOfFrameNumbers_1FPS[60:],61)
+            if (frame % takeEveryN_requested == 0)
+            ]
+        ## Join them together
+        listOfFrameNumbersAndFrames = firstMinute + remainingMinutes
+    logging.info(f"listOfFrameNumbers created with {len(listOfFrameNumbersAndFrames)} elements")
+    return json.dumps(listOfFrameNumbersAndFrames)

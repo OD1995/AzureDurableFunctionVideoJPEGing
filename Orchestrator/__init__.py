@@ -113,7 +113,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                                                         sport=sport,
                                                         event=event,
                                                         multipleVideoEvent=multipleVideoEvent,
-                                                        samplingProportion=None)
+                                                        samplingProportion=samplingProportion)
                                                 )
         (imagesCreatedList,imagesCreatedCount,
             imageNames,
