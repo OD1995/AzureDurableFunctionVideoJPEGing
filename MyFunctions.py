@@ -169,6 +169,7 @@ def getAzureBlobVideos2():
                                 ,EndpointId
                                 ,MultipleVideoEvent
                                 ,SamplingProportion
+                                ,AudioTranscript
                     FROM        AzureBlobVideos
                 """
     with pyodbc.connect(connectionString) as conn:
@@ -177,15 +178,16 @@ def getAzureBlobVideos2():
                             con=conn)
     logging.info(f"Dataframe with shape {df.shape} received")
     ## Dict - VideoName : (Sport,Event)
-    dfDict = {vn.replace(".mp4","") : (vID,s,e,eID,mve,sp)
-                for vID,vn,s,e,eID,mve,sp in zip(
+    dfDict = {vn.replace(".mp4","") : (vID,s,e,eID,mve,sp,at)
+                for vID,vn,s,e,eID,mve,sp,at in zip(
                                     df.VideoID,
                                     df.VideoName,
                                     df.Sport,
                                     df.Event,
                                     df.EndpointId,
                                     df.MultipleVideoEvent,
-                                    df.SamplingProportion)}
+                                    df.SamplingProportion,
+                                    df.AudioTranscript)}
 
     return dfDict
 
@@ -251,3 +253,13 @@ def execute_sql_command(
     cursor.commit()
 
     return rc
+
+def get_container_from_URL(fileURL):
+    return fileURL.split("/")[3]
+
+def get_file_name_from_URL(fileURL):
+    return "/".join(fileURL.split("/")[4:])
+
+
+def get_url_container_and_file_name(fileURL):
+    return get_container_from_URL(fileURL),get_file_name_from_URL(fileURL)

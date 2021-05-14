@@ -16,6 +16,7 @@ sys.path.append(os.path.abspath('.'))
 import MyFunctions
 import azure.functions as func
 import azure.durable_functions as df
+import pandas as pd
 
 
 
@@ -24,6 +25,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
 
     ## Make sure the mp4 is in the right container
     _container_ = json.loads(context._input)['container']
+    fileURL = json.loads(context._input)['fileUrl']
     if _container_ not in [
         "us-office",
         "azure-video-to-image-import"
@@ -44,17 +46,26 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
             ##    then remove them
             videoName = MyFunctions.cleanUpVidName(videoName0)
             ## Get relevant sport and event name for the video (excluding '.mp4')
-            (videoID,sport,event,endpointID,
-                multipleVideoEvent,samplingProportion) = abv[videoName[:-4]]
+            (videoID,sport,event,
+            endpointID,multipleVideoEvent,
+            samplingProportion,audioTranscript) = abv[videoName[:-4]]
             for metric,value in [
                 ("videoID",videoID),
                 ("sport",sport),
                 ("event",event),
                 ("endpointID",endpointID),
                 ("multipleVideoEvent",multipleVideoEvent),
-                ("samplingProportion",samplingProportion)
+                ("samplingProportion",samplingProportion),
+                ("audioTranscript",audioTranscript)
             ]:
                 logging.info(f"{metric}: {value}")
+            ## Correct samplingProportion from nan to None if needed
+            if pd.isna(samplingProportion):
+                samplingProportion = None
+                logging.info("samplingProportion changed")
+                logging.info(f"samplingProportion: {samplingProportion}")
+            else:
+                logging.info("this is not True: pd.isna(samplingProportion)")
         except KeyError:
             videoID = None
             sport = None
@@ -62,6 +73,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
             endpointID = None
             multipleVideoEvent = None
             samplingProportion = None
+            audioTranscript = None
             logging.info("Video not in AzureBlobVideos so relevant values assigned None")
 
         ## Make sure `videoName` has got a value, otherwise give it None
@@ -121,6 +133,15 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
         endUTCstr = datetime.strftime(context.current_utc_datetime,
                                         "%Y-%m-%d %H:%M:%S.%f")
         logging.info("Images generated!")
+
+        ## If AudioTranscript value is True, copy the video to videoindexer-files
+        if (audioTranscript == True) | (audioTranscript == 1):
+            viResult = yield context.call_activity(
+                "VideoIndex",
+                {
+                    "fileURL" : fileURL
+                }
+            )
 
 
         ## If endpointID provided in `AzureBlobVideos`, add row to `ComputerVisionProccessingJobs` for each image
