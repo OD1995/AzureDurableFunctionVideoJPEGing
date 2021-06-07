@@ -19,8 +19,8 @@ from azure.storage.blob import BlockBlobService
 
 def main(inputs: dict) -> str:
     """    
-    Copy the video into the videoindexer-files container, which will trigger the 
-    system of 3 functions to eventually download the transcript to SQL
+    Copy the video into the audiotranscript-files container(previously videoindexer-files),
+    which will trigger the system of 3 functions to eventually download the transcript to SQL
     """ 
     ## Set inputs
     vidURL = inputs['fileURL']
@@ -36,7 +36,7 @@ def main(inputs: dict) -> str:
                     )
     ## Copy blob
     bbs.copy_blob(
-        container_name="videoindexer-files",
+        container_name="audiotranscript-files",
         blob_name=urlFileName,
         copy_source=sasURL
     )

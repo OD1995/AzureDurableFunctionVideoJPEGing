@@ -134,7 +134,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                                         "%Y-%m-%d %H:%M:%S.%f")
         logging.info("Images generated!")
 
-        ## If AudioTranscript value is True, copy the video to videoindexer-files
+        ## If AudioTranscript value is True, copy the video to audiotranscript-files
         if (audioTranscript == True) | (audioTranscript == 1):
             viResult = yield context.call_activity(
                 "VideoIndex",
