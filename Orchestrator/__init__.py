@@ -48,7 +48,8 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
             ## Get relevant sport and event name for the video (excluding '.mp4')
             (videoID,sport,event,
             endpointID,multipleVideoEvent,
-            samplingProportion,audioTranscript) = abv[videoName[:-4]]
+            samplingProportion,audioTranscript,
+            databaseID) = abv[videoName[:-4]]
             for metric,value in [
                 ("videoID",videoID),
                 ("sport",sport),
@@ -56,7 +57,8 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                 ("endpointID",endpointID),
                 ("multipleVideoEvent",multipleVideoEvent),
                 ("samplingProportion",samplingProportion),
-                ("audioTranscript",audioTranscript)
+                ("audioTranscript",audioTranscript),
+                ('databaseID',databaseID)
             ]:
                 logging.info(f"{metric}: {value}")
             ## Correct samplingProportion from nan to None if needed
@@ -146,29 +148,46 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
 
         ## If endpointID provided in `AzureBlobVideos`, add row to `ComputerVisionProccessingJobs` for each image
         if endpointID is not None:
-            ## Create composite object to use
-            QueueDetails = namedtuple('QueueDetails',
-                                [
-                                    'endpointID',
-                                    'sport',
-                                    'event',
-                                    'blobDetails',
-                                    'frameNumberList',
-                                    'imagesCreatedList',
-                                    'imageNames'
-                                ])
-            qpj_result = yield context.call_activity(
-                name="QueueProcessingJobs",
-                input_=QueueDetails(
-                    endpointID=endpointID,
-                    sport=sport,
-                    event=event,
-                    blobDetails=context._input,
-                    frameNumberList=listOfFrameNumbers,
-                    imagesCreatedList=imagesCreatedList,
-                    imageNames=imageNames
+            ## If DatabaseID column empty in AzureBlobVideo, follow the same
+            ##    and VERY SLOW old way of doing things
+            if databaseID is None:
+                ## Create composite object to use
+                QueueDetails = namedtuple('QueueDetails',
+                                    [
+                                        'endpointID',
+                                        'sport',
+                                        'event',
+                                        'blobDetails',
+                                        'frameNumberList',
+                                        'imagesCreatedList',
+                                        'imageNames'
+                                    ])
+                qpj_result = yield context.call_activity(
+                    name="QueueProcessingJobs",
+                    input_=QueueDetails(
+                        endpointID=endpointID,
+                        sport=sport,
+                        event=event,
+                        blobDetails=context._input,
+                        frameNumberList=listOfFrameNumbers,
+                        imagesCreatedList=imagesCreatedList,
+                        imageNames=imageNames
+                    )
                 )
-            )
+            else:
+                qoe_result = yield context.call_activity(
+                    name='QueueOcrEvent',
+                    input_={
+                        'JobCreatedBy' : 'FuturesVideoJPEGing',
+                        'JobPriority' : 10,
+                        'ClientDatabaseId' : databaseID,
+                        'EndpointId' : endpointID,
+                        'Sport' : sport,
+                        'SportsEvent' : event,
+                        'NumberOfImages' : len(json.loads(listOfFrameNumbers))
+                    }
+                )
+
 
         ## Add line to SQL - using another composite object
         UploadDetails = namedtuple('UploadDetails',

@@ -170,6 +170,7 @@ def getAzureBlobVideos2():
                                 ,MultipleVideoEvent
                                 ,SamplingProportion
                                 ,AudioTranscript
+                                ,DatabaseId
                     FROM        AzureBlobVideos
                 """
     with pyodbc.connect(connectionString) as conn:
@@ -178,16 +179,20 @@ def getAzureBlobVideos2():
                             con=conn)
     logging.info(f"Dataframe with shape {df.shape} received")
     ## Dict - VideoName : (Sport,Event)
-    dfDict = {vn.replace(".mp4","") : (vID,s,e,eID,mve,sp,at)
-                for vID,vn,s,e,eID,mve,sp,at in zip(
-                                    df.VideoID,
-                                    df.VideoName,
-                                    df.Sport,
-                                    df.Event,
-                                    df.EndpointId,
-                                    df.MultipleVideoEvent,
-                                    df.SamplingProportion,
-                                    df.AudioTranscript)}
+    dfDict = {
+        vn.replace(".mp4","") : (vID,s,e,eID,mve,sp,at,dbID)
+        for vID,vn,s,e,eID,mve,sp,at,dbID in zip(
+            df.VideoID,
+            df.VideoName,
+            df.Sport,
+            df.Event,
+            df.EndpointId,
+            df.MultipleVideoEvent,
+            df.SamplingProportion,
+            df.AudioTranscript,
+            df.DatabaseId
+        )
+    }
 
     return dfDict
 
