@@ -18,12 +18,12 @@ def main(inputs: dict) -> str:
     spSaveOcrRunToCreationQueue_string = f"""
 EXEC    spSaveOcrRunToCreationQueue
         @JobCreatedBy = '{inputs["JobCreatedBy"]}',
-        @JobPriority = '{inputs["JobPriority"]}',
+        @JobPriority = {inputs["JobPriority"]},
         @ClientDatabaseId = '{inputs["ClientDatabaseId"]}',
         @EndpointId = '{inputs["EndpointId"]}',
         @Sport = '{inputs["Sport"]}',
         @SportsEvent = '{inputs["SportsEvent"]}',
-        @NumberOfImages = '{inputs["NumberOfImages"]}'
+        @NumberOfImages = {inputs["NumberOfImages"]}
     """
     _ = MyFunctions.execute_sql_command(
         sp_string=spSaveOcrRunToCreationQueue_string
