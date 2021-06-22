@@ -1,7 +1,6 @@
 import logging
 import azure.functions as func
 import azure.durable_functions as df
-import json
 
 def get_options(
 	user,
@@ -45,9 +44,19 @@ async def main(
 		user='HttpTrigger',
 		req=req
 	)
+	if options['container'] not in [
+        "us-office",
+        "azure-video-to-image-import"
+	]:
+		return f"Container = `{options['container']}` so no processing needed"
+	else:
+		instance_id = await client.start_new(
+			orchestration_function_name="Orchestrator",
+			instance_id=None,
+			client_input=options
+		)
 
-    instance_id = await client.start_new(orchestration_function_name="Orchestrator",
-                                            instance_id=None,
-                                            client_input=options)
-
-    return client.create_check_status_response(req, instance_id)
+		return client.create_check_status_response(
+			req,
+			instance_id
+		)

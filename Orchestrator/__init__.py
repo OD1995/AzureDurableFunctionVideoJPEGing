@@ -26,192 +26,189 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
     ## Make sure the mp4 is in the right container
     _container_ = json.loads(context._input)['container']
     fileURL = json.loads(context._input)['fileUrl']
-    if _container_ not in [
-        "us-office",
-        "azure-video-to-image-import"
-    ]:
-        return f"Container = `{_container_}` so no processing needed"
 
-    else:
-        startUTCstr = datetime.strftime(context.current_utc_datetime,
-                                        "%Y-%m-%d %H:%M:%S.%f")
-        ## Get AzureBlobVideos table from SQL, in dict form
-        abv = MyFunctions.getAzureBlobVideos2()
-        logging.info(f"AzureBlobVideos table retrieved, rows: {len(abv)}")
 
-        ## If the video name is in the dict, extract the information
-        try:
-            videoName0 = json.loads(context._input)['blob']
-            ## If last 11 characters (excluding '.mp4') follow '-YYYY-MM-DD'
-            ##    then remove them
-            videoName = MyFunctions.cleanUpVidName(videoName0)
-            ## Get relevant sport and event name for the video (excluding '.mp4')
-            (videoID,sport,event,
-            endpointID,multipleVideoEvent,
-            samplingProportion,audioTranscript,
-            databaseID) = abv[videoName[:-4]]
-            for metric,value in [
-                ("videoID",videoID),
-                ("sport",sport),
-                ("event",event),
-                ("endpointID",endpointID),
-                ("multipleVideoEvent",multipleVideoEvent),
-                ("samplingProportion",samplingProportion),
-                ("audioTranscript",audioTranscript),
-                ('databaseID',databaseID)
-            ]:
-                logging.info(f"{metric}: {value}")
-            ## Correct samplingProportion from nan to None if needed
-            if pd.isna(samplingProportion):
-                samplingProportion = None
-                logging.info("samplingProportion changed")
-                logging.info(f"samplingProportion: {samplingProportion}")
-            else:
-                logging.info("this is not True: pd.isna(samplingProportion)")
-        except KeyError:
-            videoID = None
-            sport = None
-            event = None
-            endpointID = None
-            multipleVideoEvent = None
+    startUTCstr = datetime.strftime(context.current_utc_datetime,
+                                    "%Y-%m-%d %H:%M:%S.%f")
+    ## Get AzureBlobVideos table from SQL, in dict form
+    abv = MyFunctions.getAzureBlobVideos2()
+    logging.info(f"AzureBlobVideos table retrieved, rows: {len(abv)}")
+
+    ## If the video name is in the dict, extract the information
+    try:
+        videoName0 = json.loads(context._input)['blob']
+        ## If last 11 characters (excluding '.mp4') follow '-YYYY-MM-DD'
+        ##    then remove them
+        videoName = MyFunctions.cleanUpVidName(videoName0)
+        ## Get relevant sport and event name for the video (excluding '.mp4')
+        (videoID,sport,event,
+        endpointID,multipleVideoEvent,
+        samplingProportion,audioTranscript,
+        databaseID) = abv[videoName[:-4]]
+        for metric,value in [
+            ("videoID",videoID),
+            ("sport",sport),
+            ("event",event),
+            ("endpointID",endpointID),
+            ("multipleVideoEvent",multipleVideoEvent),
+            ("samplingProportion",samplingProportion),
+            ("audioTranscript",audioTranscript),
+            ('databaseID',databaseID)
+        ]:
+            logging.info(f"{metric}: {value}")
+        ## Correct samplingProportion from nan to None if needed
+        if pd.isna(samplingProportion):
             samplingProportion = None
-            audioTranscript = None
-            logging.info("Video not in AzureBlobVideos so relevant values assigned None")
-
-        ## Make sure `videoName` has got a value, otherwise give it None
-        try:
-            videoName
-        except NameError:
-            videoName = None
-
-        if sport == 'baseball':
-            ## Get time to cut from, using MLB API
-            timeToCutUTC = yield context.call_activity(name='CallAPI',
-                                                        input_=context._input)
-            logging.info('timeToCutUTC acquired from API')
+            logging.info("samplingProportion changed")
+            logging.info(f"samplingProportion: {samplingProportion}")
         else:
-            ## Make timeToCutUTC a time far in the future (my 100th birthday)
-            timeToCutUTC = "2095-03-13 00:00:00.00000"
-            logging.info("Not baseball, so distant timeToCutUTC provided")
+            logging.info("this is not True: pd.isna(samplingProportion)")
+    except KeyError:
+        videoID = None
+        sport = None
+        event = None
+        endpointID = None
+        multipleVideoEvent = None
+        samplingProportion = None
+        audioTranscript = None
+        logging.info("Video not in AzureBlobVideos so relevant values assigned None")
 
-        ## Get list of frame numbers to convert to JPEGs, ending at `timeToCutUTC`
-        ##    Use composite object
-        ##     - https://docs.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-orchestrations?tabs=python#passing-multiple-parameters
-        vidDets = namedtuple('VideoDetails',
-                            ['blobDetails',
-                            'timeToCutUTC',
-                            'frameNumberList',
-                            'sport',
-                            'event',
-                            'multipleVideoEvent',
-                            'samplingProportion'])
-        videoDetails = vidDets(blobDetails=context._input,
-                                timeToCutUTC=timeToCutUTC,
-                                frameNumberList=None,
-                                sport=None,
-                                event=None,
-                                multipleVideoEvent=None,
-                                samplingProportion=samplingProportion)
-        logging.info("Initial videoDetails object created")
-        listOfFrameNumbers = yield context.call_activity(
-                                        name='ReturnFrameNumbers',
-                                        input_=videoDetails)
-        logging.info(f'List of {len(json.loads(listOfFrameNumbers))} generated')
+    ## Make sure `videoName` has got a value, otherwise give it None
+    try:
+        videoName
+    except NameError:
+        videoName = None
 
-        # Create images from list
-        MP4toJPEGsoutput = yield context.call_activity(
-                                        name='MP4toJPEGs',
-                                        input_=vidDets(blobDetails=context._input,
-                                                        timeToCutUTC=None,
-                                                        frameNumberList=listOfFrameNumbers,
-                                                        sport=sport,
-                                                        event=event,
-                                                        multipleVideoEvent=multipleVideoEvent,
-                                                        samplingProportion=samplingProportion)
-                                                )
-        (imagesCreatedList,imagesCreatedCount,
-            imageNames,
-            outputContainer,outputBlobStorageAccount) = json.loads(MP4toJPEGsoutput)
-        endUTCstr = datetime.strftime(context.current_utc_datetime,
-                                        "%Y-%m-%d %H:%M:%S.%f")
-        logging.info("Images generated!")
+    if sport == 'baseball':
+        ## Get time to cut from, using MLB API
+        timeToCutUTC = yield context.call_activity(name='CallAPI',
+                                                    input_=context._input)
+        logging.info('timeToCutUTC acquired from API')
+    else:
+        ## Make timeToCutUTC a time far in the future (my 100th birthday)
+        timeToCutUTC = "2095-03-13 00:00:00.00000"
+        logging.info("Not baseball, so distant timeToCutUTC provided")
 
-        ## If AudioTranscript value is True, copy the video to audiotranscript-files
-        if (audioTranscript == True) | (audioTranscript == 1):
-            viResult = yield context.call_activity(
-                "VideoIndex",
-                {
-                    "fileURL" : fileURL
+    ## Get list of frame numbers to convert to JPEGs, ending at `timeToCutUTC`
+    ##    Use composite object
+    ##     - https://docs.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-orchestrations?tabs=python#passing-multiple-parameters
+    vidDets = namedtuple('VideoDetails',
+                        ['blobDetails',
+                        'timeToCutUTC',
+                        'frameNumberList',
+                        'sport',
+                        'event',
+                        'multipleVideoEvent',
+                        'samplingProportion'])
+    videoDetails = vidDets(blobDetails=context._input,
+                            timeToCutUTC=timeToCutUTC,
+                            frameNumberList=None,
+                            sport=None,
+                            event=None,
+                            multipleVideoEvent=None,
+                            samplingProportion=samplingProportion)
+    logging.info("Initial videoDetails object created")
+    listOfFrameNumbers = yield context.call_activity(
+                                    name='ReturnFrameNumbers',
+                                    input_=videoDetails)
+    logging.info(f'List of {len(json.loads(listOfFrameNumbers))} generated')
+
+    # Create images from list
+    MP4toJPEGsoutput = yield context.call_activity(
+                                    name='MP4toJPEGs',
+                                    input_=vidDets(blobDetails=context._input,
+                                                    timeToCutUTC=None,
+                                                    frameNumberList=listOfFrameNumbers,
+                                                    sport=sport,
+                                                    event=event,
+                                                    multipleVideoEvent=multipleVideoEvent,
+                                                    samplingProportion=samplingProportion)
+                                            )
+    (imagesCreatedList,imagesCreatedCount,
+        imageNames,
+        outputContainer,outputBlobStorageAccount) = json.loads(MP4toJPEGsoutput)
+    endUTCstr = datetime.strftime(context.current_utc_datetime,
+                                    "%Y-%m-%d %H:%M:%S.%f")
+    logging.info("Images generated!")
+
+    ## If AudioTranscript value is True, copy the video to audiotranscript-files
+    if (audioTranscript == True) | (audioTranscript == 1):
+        viResult = yield context.call_activity(
+            "VideoIndex",
+            {
+                "fileURL" : fileURL
+            }
+        )
+
+
+    ## If endpointID provided in `AzureBlobVideos`, add row to `ComputerVisionProccessingJobs` for each image
+    if endpointID is not None:
+        ## If DatabaseID column empty in AzureBlobVideo, follow the same
+        ##    and VERY SLOW old way of doing things
+        if databaseID is None:
+            logging.info("endpointID given but no databaseID")
+            ## Create composite object to use
+            QueueDetails = namedtuple('QueueDetails',
+                                [
+                                    'endpointID',
+                                    'sport',
+                                    'event',
+                                    'blobDetails',
+                                    'frameNumberList',
+                                    'imagesCreatedList',
+                                    'imageNames'
+                                ])
+            qpj_result = yield context.call_activity(
+                name="QueueProcessingJobs",
+                input_=QueueDetails(
+                    endpointID=endpointID,
+                    sport=sport,
+                    event=event,
+                    blobDetails=context._input,
+                    frameNumberList=listOfFrameNumbers,
+                    imagesCreatedList=imagesCreatedList,
+                    imageNames=imageNames
+                )
+            )
+        else:
+            logging.info("both endpointID and databaseID given")
+            qoe_result = yield context.call_activity(
+                name='QueueOcrEvent',
+                input_={
+                    'JobCreatedBy' : 'FuturesVideoJPEGing',
+                    'JobPriority' : 10,
+                    'ClientDatabaseId' : databaseID,
+                    'EndpointId' : endpointID,
+                    'Sport' : sport,
+                    'SportsEvent' : event,
+                    'NumberOfImages' : len(json.loads(listOfFrameNumbers))
                 }
             )
 
 
-        ## If endpointID provided in `AzureBlobVideos`, add row to `ComputerVisionProccessingJobs` for each image
-        if endpointID is not None:
-            ## If DatabaseID column empty in AzureBlobVideo, follow the same
-            ##    and VERY SLOW old way of doing things
-            if databaseID is None:
-                ## Create composite object to use
-                QueueDetails = namedtuple('QueueDetails',
-                                    [
-                                        'endpointID',
-                                        'sport',
-                                        'event',
-                                        'blobDetails',
-                                        'frameNumberList',
-                                        'imagesCreatedList',
-                                        'imageNames'
-                                    ])
-                qpj_result = yield context.call_activity(
-                    name="QueueProcessingJobs",
-                    input_=QueueDetails(
-                        endpointID=endpointID,
-                        sport=sport,
-                        event=event,
-                        blobDetails=context._input,
-                        frameNumberList=listOfFrameNumbers,
-                        imagesCreatedList=imagesCreatedList,
-                        imageNames=imageNames
-                    )
-                )
-            else:
-                qoe_result = yield context.call_activity(
-                    name='QueueOcrEvent',
-                    input_={
-                        'JobCreatedBy' : 'FuturesVideoJPEGing',
-                        'JobPriority' : 10,
-                        'ClientDatabaseId' : databaseID,
-                        'EndpointId' : endpointID,
-                        'Sport' : sport,
-                        'SportsEvent' : event,
-                        'NumberOfImages' : len(json.loads(listOfFrameNumbers))
-                    }
-                )
+    ## Add line to SQL - using another composite object
+    UploadDetails = namedtuple('UploadDetails',
+                        ['startUTC',
+                        'endUTC',
+                        'videoID',
+                        'videoName',
+                        'event',
+                        'outputContainer',
+                        'outputBlobStorageAccount',
+                        'imagesCreatedCount'])
+    wts_result = yield context.call_activity(
+                                    name='WriteToSQL',
+                                    input_=UploadDetails(
+                                                    startUTC=startUTCstr,
+                                                    endUTC=endUTCstr,
+                                                    videoID=videoID,
+                                                    videoName=videoName,
+                                                    event=event,
+                                                    outputContainer=outputContainer,
+                                                    outputBlobStorageAccount=outputBlobStorageAccount,
+                                                    imagesCreatedCount=imagesCreatedCount)
+                                            )
 
-
-        ## Add line to SQL - using another composite object
-        UploadDetails = namedtuple('UploadDetails',
-                            ['startUTC',
-                            'endUTC',
-                            'videoID',
-                            'videoName',
-                            'event',
-                            'outputContainer',
-                            'outputBlobStorageAccount',
-                            'imagesCreatedCount'])
-        wts_result = yield context.call_activity(
-                                        name='WriteToSQL',
-                                        input_=UploadDetails(
-                                                        startUTC=startUTCstr,
-                                                        endUTC=endUTCstr,
-                                                        videoID=videoID,
-                                                        videoName=videoName,
-                                                        event=event,
-                                                        outputContainer=outputContainer,
-                                                        outputBlobStorageAccount=outputBlobStorageAccount,
-                                                        imagesCreatedCount=imagesCreatedCount)
-                                                )
-
-        return f"{qpj_result} & {wts_result}" if endpointID is not None else wts_result
+    return f"{qpj_result} & {wts_result}" if endpointID is not None else wts_result
 # logging.info("We're on line 83")
 main = df.Orchestrator.create(orchestrator_function)

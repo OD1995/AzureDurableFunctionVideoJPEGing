@@ -1,10 +1,12 @@
+from logging import info
+import logging
 import azure.functions as func
 import azure.durable_functions as df
 from HttpTrigger import get_options
 
 async def main(
 	event: func.EventGridEvent,
-    starter: str
+	starter: str
 ):
 
 	client = df.DurableOrchestrationClient(starter)
@@ -13,7 +15,16 @@ async def main(
 		user='EventGridTrigger',
 		event=event
 	)
+	if options['container'] not in [
+        "us-office",
+        "azure-video-to-image-import"
+    ]:
+		logging.info(f"Container = `{options['container']}` so no processing needed")
+	else:
+		instance_id = await client.start_new(
+			orchestration_function_name="Orchestrator",
+			instance_id=None,
+			client_input=options
+		)
 
-    instance_id = await client.start_new(orchestration_function_name="Orchestrator",
-                                            instance_id=None,
-                                            client_input=options)
+		logging.info(f"instance_id: {instance_id}")

@@ -10,13 +10,15 @@ import logging
 import os
 import sys
 sys.path.append(os.path.abspath('.'))
-import MyFunctions
+from MyFunctions import execute_sql_command
 
 
 def main(inputs: dict) -> str:
 
     spSaveOcrRunToCreationQueue_string = f"""
-EXEC    spSaveOcrRunToCreationQueue
+DECLARE	@return_value int
+
+EXEC	@return_value = spSaveOcrRunToCreationQueue
         @JobCreatedBy = '{inputs["JobCreatedBy"]}',
         @JobPriority = {inputs["JobPriority"]},
         @ClientDatabaseId = '{inputs["ClientDatabaseId"]}',
@@ -24,9 +26,13 @@ EXEC    spSaveOcrRunToCreationQueue
         @Sport = '{inputs["Sport"]}',
         @SportsEvent = '{inputs["SportsEvent"]}',
         @NumberOfImages = {inputs["NumberOfImages"]}
+
+SELECT	'Return Value' = @return_value
     """
-    _ = MyFunctions.execute_sql_command(
-        sp_string=spSaveOcrRunToCreationQueue_string
+    res = execute_sql_command(
+        sp_string=spSaveOcrRunToCreationQueue_string,
+        database='ThemisDEVELOPMENT'
     )
+    logging.info(f"res: `{res}`")
 
     return "done"

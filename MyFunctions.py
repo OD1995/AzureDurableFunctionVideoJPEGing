@@ -118,8 +118,8 @@ def createBlobs(
     ## Set the video to the correct frame
     vidcap.set(cv2.CAP_PROP_POS_FRAMES,
                 frameNumber)
-    logging.info(f"Video set to frame number: {frameNumber}")
-    logging.info(f"Frame number name: {frameNumberName}")
+    logging.info(f"Video set to frame number: {frameNumber} - {mp4Name}")
+    logging.info(f"Frame number name: {frameNumberName} - {mp4Name}")
     ## Create the image
     success,image = vidcap.read()
     logging.info(f"Image read, success: {success}, `image` type: {type(image)}")
@@ -143,13 +143,12 @@ def createBlobs(
     
     return imageCreated,frameName
 
-def get_connection_string():
+def get_connection_string(database='AzureCognitive'):
     username = 'matt.shepherd'
     password = "4rsenal!PG01"
     driver = '{ODBC Driver 17 for SQL Server}'
     # driver = 'SQL Server Native Client 11.0'
     server = "fse-inf-live-uk.database.windows.net"
-    database = 'AzureCognitive'
     ## Create connection string
     connectionString = f'DRIVER={driver};SERVER={server};PORT=1433;DATABASE={database};UID={username};PWD={password}'
     
@@ -245,16 +244,21 @@ def sqlValue_ise(x):
 
 
 def execute_sql_command(
-    sp_string
+    sp_string,
+    database='AzureCognitive'
 ):
-    connectionString = get_connection_string()
+    connectionString = get_connection_string(database)
     ## Connect to SQL server
     cursor = pyodbc.connect(connectionString).cursor()
     ## Execute command
+    logging.info(f"Executing below in {database}")
     logging.info(sp_string)
     cursor.execute(sp_string)
     ## Get returned values
-    rc = cursor.fetchval()
+    try:
+        rc = cursor.fetchval()
+    except pyodbc.ProgrammingError:
+        rc = None
     cursor.commit()
 
     return rc
