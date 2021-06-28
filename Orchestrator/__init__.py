@@ -45,6 +45,8 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
         endpointID,multipleVideoEvent,
         samplingProportion,audioTranscript,
         databaseID) = abv[videoName[:-4]]
+        ## Convert databaseID to None if it is been left empty rather than NULL
+        databaseID = None if databaseID == "" else databaseID
         for metric,value in [
             ("videoID",videoID),
             ("sport",sport),

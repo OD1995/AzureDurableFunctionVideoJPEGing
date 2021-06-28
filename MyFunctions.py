@@ -108,7 +108,7 @@ def createBlobs(
 
     ## If it's a video from a multi video event, give it a different name
     ##    `multipleVideoEvent` is boolean
-    if multipleVideoEvent:
+    if multipleVideoEvent in [1,True]:
         frameNameEnd = (5 - len(str(frameNumberName)))*"0" + str(frameNumberName)
         frameName = fr"{mp4Name}_{frameNameEnd}.jpeg"
     else:
