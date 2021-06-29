@@ -12,7 +12,8 @@ def get_options(
 		for f in [  
 					'fileUrl',
 					'container',
-					'blob'
+					'blob',
+					'imagesAlreadyCreated'
 					]:
 			options[f] = req.params.get(f)
 

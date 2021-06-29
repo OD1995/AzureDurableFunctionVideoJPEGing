@@ -24,8 +24,10 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
     logging.info("Orchestrator started")
 
     ## Make sure the mp4 is in the right container
-    _container_ = json.loads(context._input)['container']
-    fileURL = json.loads(context._input)['fileUrl']
+    inputDict = json.loads(context._input)
+    _container_ = inputDict['container']
+    fileURL = inputDict['fileUrl']
+    imagesAlreadyCreated = inputDict['imagesAlreadyCreated']
 
 
     startUTCstr = datetime.strftime(context.current_utc_datetime,
@@ -36,7 +38,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
 
     ## If the video name is in the dict, extract the information
     try:
-        videoName0 = json.loads(context._input)['blob']
+        videoName0 = inputDict['blob']
         ## If last 11 characters (excluding '.mp4') follow '-YYYY-MM-DD'
         ##    then remove them
         videoName = MyFunctions.cleanUpVidName(videoName0)
@@ -160,7 +162,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                                     'imagesCreatedList',
                                     'imageNames'
                                 ])
-            qpj_result = yield context.call_activity(
+            ocr_result = yield context.call_activity(
                 name="QueueProcessingJobs",
                 input_=QueueDetails(
                     endpointID=endpointID,
@@ -174,7 +176,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
             )
         else:
             logging.info("both endpointID and databaseID given")
-            qoe_result = yield context.call_activity(
+            ocr_result = yield context.call_activity(
                 name='QueueOcrEvent',
                 input_={
                     'JobCreatedBy' : 'FuturesVideoJPEGing',
@@ -211,6 +213,6 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                                                     imagesCreatedCount=imagesCreatedCount)
                                             )
 
-    return f"{qpj_result} & {wts_result}" if endpointID is not None else wts_result
+    return f"{ocr_result} & {wts_result}" if endpointID is not None else wts_result
 # logging.info("We're on line 83")
 main = df.Orchestrator.create(orchestrator_function)

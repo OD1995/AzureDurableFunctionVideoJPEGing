@@ -39,12 +39,14 @@ def main(videoDetails: vidDets) -> list:
     fileURL = blobOptions['fileUrl']
     container = blobOptions['container']
     fileName = blobOptions['blob']
+    imagesAlreadyCreated = blobOptions['imagesAlreadyCreated']
     timeToCutUTC = datetime.strptime(timeToCutUTCStr,
                                     "%Y-%m-%d %H:%M:%S.%f")
     logging.info(f"fileURL: {fileURL}")
     logging.info(f"container: {container}")
     logging.info(f"fileName: {fileName}")
     logging.info(f"timeToCutUTCStr: {timeToCutUTCStr}")
+    logging.info(f"imagesAlreadyCreated: {imagesAlreadyCreated}")
     ## Create BlockBlobService object
     logging.info("About to create BlockBlobService")
     block_blob_service = BlockBlobService(connection_string=os.environ['fsevideosConnectionString'])
@@ -140,5 +142,10 @@ def main(videoDetails: vidDets) -> list:
             ]
         ## Join them together
         listOfFrameNumbersAndFrames = firstMinute + remainingMinutes
+    if imagesAlreadyCreated is not None:
+        ## Some images have already been created, so cut them away
+        logging.info(f"Initially, there were {len(listOfFrameNumbersAndFrames)} elements")
+        listOfFrameNumbersAndFrames = listOfFrameNumbersAndFrames[imagesAlreadyCreated:]
+        logging.info(f"Now there are {len(listOfFrameNumbersAndFrames)} elements")
     logging.info(f"listOfFrameNumbers created with {len(listOfFrameNumbersAndFrames)} elements")
     return json.dumps(listOfFrameNumbersAndFrames)
