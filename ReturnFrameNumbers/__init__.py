@@ -39,7 +39,10 @@ def main(videoDetails: vidDets) -> list:
     fileURL = blobOptions['fileUrl']
     container = blobOptions['container']
     fileName = blobOptions['blob']
-    imagesAlreadyCreated = blobOptions['imagesAlreadyCreated']
+    if blobOptions['imagesAlreadyCreated'] is not None:
+        imagesAlreadyCreated = int(blobOptions['imagesAlreadyCreated']) 
+    else:
+        imagesAlreadyCreated = None
     timeToCutUTC = datetime.strptime(timeToCutUTCStr,
                                     "%Y-%m-%d %H:%M:%S.%f")
     logging.info(f"fileURL: {fileURL}")

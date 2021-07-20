@@ -245,7 +245,8 @@ def sqlValue_ise(x):
 
 def execute_sql_command(
     sp_string,
-    database='AzureCognitive'
+    database='AzureCognitive',
+    return_something=True
 ):
     connectionString = get_connection_string(database)
     ## Connect to SQL server
@@ -254,14 +255,16 @@ def execute_sql_command(
     logging.info(f"Executing below in {database}")
     logging.info(sp_string)
     cursor.execute(sp_string)
-    ## Get returned values
-    try:
-        rc = cursor.fetchval()
-    except pyodbc.ProgrammingError:
-        rc = None
-    cursor.commit()
-
-    return rc
+    if return_something:
+        ## Get returned values
+        try:
+            rc = cursor.fetchval()
+        except pyodbc.ProgrammingError:
+            rc = None
+        cursor.commit()
+        return rc
+    else:
+        cursor.commit()
 
 def get_container_from_URL(fileURL):
     return fileURL.split("/")[3]
@@ -272,3 +275,32 @@ def get_file_name_from_URL(fileURL):
 
 def get_url_container_and_file_name(fileURL):
     return get_container_from_URL(fileURL),get_file_name_from_URL(fileURL)
+
+def update_row_status(
+    rowID,
+    status=None,
+    uri=None
+):
+    currentDateTimeStr = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+    
+    if status is not None:
+    ## Build update statement
+        us = f"""
+        UPDATE VideoJPEGingQueue
+        SET [Status] = '{status}', [StatusUpdatedDateTime] = '{currentDateTimeStr}'
+        WHERE [RowID] = {rowID}
+        """
+    elif uri is not None:
+        us = f"""
+        UPDATE VideoJPEGingQueue
+        SET [StatusQueryGetUri] = '{uri}'
+        WHERE [RowID] = {rowID}
+        """
+    else:
+        raise ValueError("both `status` and `uri` are None")
+    ## Run statement
+    execute_sql_command(
+        sp_string=us,
+        database="PhotoTextTrack",
+        return_something=False
+    )
