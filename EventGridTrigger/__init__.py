@@ -45,6 +45,6 @@ async def main(
 		"""
 		execute_sql_command(
 			sp_string=iQ,
-			database="PhotoTextTrack",
+			database="AzureCognitive",
 			return_something=False
 		)

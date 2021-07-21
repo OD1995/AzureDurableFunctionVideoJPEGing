@@ -16,11 +16,10 @@ def get_options(
 		options = {}
 		for f in [  
 					'fileUrl',
-					'container',
-					'blob',
 					'imagesAlreadyCreated'
 					]:
 			options[f] = req.params.get(f)
+		options['container'] = options['fileUrl'].split("/")[3]
 
 
 	elif user == 'EventGridTrigger':
@@ -45,7 +44,7 @@ def get_options(
 					]:
 			options[f] = req.params.get(f)
 		
-		options['container'] = options['fileUrl'].split("/")[-2]
+		options['container'] = options['fileUrl'].split("/")[3]
 		options['blob'] = unquote(options['fileUrl'].split("/")[-1])
 
 	logging.info("starter----------------> %s",options)
@@ -67,7 +66,13 @@ async def main(
         "us-office",
         "azure-video-to-image-import"
 	]:
-		return f"Container = `{options['container']}` so no processing needed"
+		a = f"Container = `{options['container']}` so no processing needed"
+		logging.info(a)
+		
+		return func.HttpResponse(
+			body=a,
+			status_code=500
+		)
 	else:
 		# instance_id = await client.start_new(
 		# 	orchestration_function_name="Orchestrator",
@@ -90,6 +95,11 @@ async def main(
 		"""
 		execute_sql_command(
 			sp_string=iQ,
-			database="PhotoTextTrack",
+			database="AzureCognitive",
 			return_something=False
+		)
+
+		return func.HttpResponse(
+			body='Success',
+			status_code=200
 		)

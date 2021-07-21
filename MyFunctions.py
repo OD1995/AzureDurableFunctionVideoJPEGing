@@ -301,6 +301,6 @@ def update_row_status(
     ## Run statement
     execute_sql_command(
         sp_string=us,
-        database="PhotoTextTrack",
+        database="AzureCognitive",
         return_something=False
     )
