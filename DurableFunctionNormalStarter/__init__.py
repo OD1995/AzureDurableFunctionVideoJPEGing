@@ -1,10 +1,3 @@
-# This function an HTTP starter function for Durable Functions.
-# Before running this sample, please:
-# - create a Durable orchestration function
-# - create a Durable activity function (default name is "Hello")
-# - add azure-functions-durable to requirements.txt
-# - run pip install -r requirements.txt
- 
 import logging
 from HttpTrigger import get_options
 import azure.functions as func
@@ -14,7 +7,6 @@ import os
 import sys
 sys.path.append(os.path.abspath('.'))
 from MyFunctions import update_row_status
-
 
 async def main(req: func.HttpRequest, starter: str) -> func.HttpResponse:
     ## `req` requires parameters:

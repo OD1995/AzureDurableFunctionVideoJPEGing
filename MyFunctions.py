@@ -304,3 +304,16 @@ def update_row_status(
         database="AzureCognitive",
         return_something=False
     )
+
+def is_uuid(blob_name):
+    ## Remove .mp4 from the end
+    bn = blob_name.replace(".mp4","")
+    ## Split by hyphens
+    sections = bn.split("-")
+    if len(sections) != 5:
+        return False
+    section_lengths = [8,4,4,4,12]
+    for sec,length in zip(sections,section_lengths):
+        if len(sec) != length:
+            return False
+    return True

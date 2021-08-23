@@ -34,7 +34,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
         # imagesAlreadyCreated = inputDict['imagesAlreadyCreated']
         MyFunctions.update_row_status(
             rowID=rowID,
-            status='In Progress'
+            status=f'In Progress - {os.getenv("appName")}'
         )
 
         startUTCstr = datetime.strftime(context.current_utc_datetime,
@@ -90,7 +90,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
         except NameError:
             videoName = None
 
-        if sport == 'baseball':
+        if (sport == 'baseball') & (not MyFunctions.is_uuid(inputDict['blob'])):
             ## Get time to cut from, using MLB API
             timeToCutUTC = yield context.call_activity(name='CallAPI',
                                                         input_=context._input)
@@ -221,7 +221,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
                                                 )
 
         ## Update row status
-        update_row_status(
+        MyFunctions.update_row_status(
             rowID=rowID,
             status="Finished"
         )
@@ -231,7 +231,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
     
     except Exception as error:
         ## Update row status
-        update_row_status(
+        MyFunctions.update_row_status(
             rowID=rowID,
             status="Error"
         )
