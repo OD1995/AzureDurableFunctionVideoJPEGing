@@ -40,7 +40,7 @@ def main(videoDetails: vidDets) -> list:
     container = blobOptions['container']
     fileName = blobOptions['blob']
     if blobOptions['imagesAlreadyCreated'] is not None:
-        imagesAlreadyCreated = int(blobOptions['imagesAlreadyCreated']) 
+        imagesAlreadyCreated = int(float((blobOptions['imagesAlreadyCreated']))
     else:
         imagesAlreadyCreated = None
     timeToCutUTC = datetime.strptime(timeToCutUTCStr,
