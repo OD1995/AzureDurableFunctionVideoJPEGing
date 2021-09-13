@@ -20,6 +20,7 @@ sys.path.append(os.path.abspath('.'))
 import MyClasses
 import MyFunctions
 import pytz
+import pandas as pd
 
 vidDets = namedtuple('VideoDetails',
                     ['blobDetails',
@@ -39,10 +40,14 @@ def main(videoDetails: vidDets) -> list:
     fileURL = blobOptions['fileUrl']
     container = blobOptions['container']
     fileName = blobOptions['blob']
-    if blobOptions['imagesAlreadyCreated'] is not None:
-        imagesAlreadyCreated = int(float((blobOptions['imagesAlreadyCreated']))
-    else:
+    # if blobOptions['imagesAlreadyCreated'] is not None:
+    #     imagesAlreadyCreated = int(float((blobOptions['imagesAlreadyCreated'])))
+    # else:
+    #     imagesAlreadyCreated = None
+    if (blobOptions['imagesAlreadyCreated'] is None) or pd.isna(blobOptions['imagesAlreadyCreated']):
         imagesAlreadyCreated = None
+    else:
+        imagesAlreadyCreated = int(float((blobOptions['imagesAlreadyCreated'])))
     timeToCutUTC = datetime.strptime(timeToCutUTCStr,
                                     "%Y-%m-%d %H:%M:%S.%f")
     logging.info(f"fileURL: {fileURL}")
